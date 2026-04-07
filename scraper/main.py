@@ -1,25 +1,23 @@
-from app.database import create_tables, save_result
+from app.database import create_tables, get_products_to_scrape, save_result
 from app.runner import run
 
+# Garante que as tabelas existem
 create_tables()
 
-def get_products_to_scrape(conn) -> dict:
-    with conn.cursor() as cur:
-        cur.execute("""
-            SELECT p.group_name, pu.url
-            FROM product_urls pu
-            JOIN products p ON p.id = pu.product_id
-            WHERE pu.active = TRUE
-        """)
-        rows = cur.fetchall()
+# Busca produtos ativos do banco de dados
+products = get_products_to_scrape()
 
-    products = {}
-    for group_name, url in rows:
-        products.setdefault(group_name, []).append(url)
-    return products
+if not products:
+    print("Nenhum produto ativo encontrado no banco de dados.")
+    print("Use a API para cadastrar produtos e URLs.")
+    exit(0)
 
+print(f"Produtos encontrados: {len(products)}")
+
+# Executa o scraping
 results = run(products)
 
+# Salva os resultados
 for result in results:
     save_result(result)
 

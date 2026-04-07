@@ -7,7 +7,7 @@ services:
       - postgres_data:/var/lib/postgresql/data
     ports:
       - "5432:5432"
-      
+
   scraper:
     build:
       context: .
@@ -21,6 +21,17 @@ services:
     volumes:
       - ./scraper:/app
     command: python main.py
+    profiles:
+      - manual
+
+  scheduler:
+    image: mcuadros/ofelia:latest
+    restart: unless-stopped
+    depends_on:
+      - db
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - ./ofelia.ini:/etc/ofelia/config.ini
 
   api:
     build:
