@@ -20,11 +20,11 @@ function App() {
 
   const apiUrl = import.meta.env.VITE_API_URL;
 
-  // Busca os produtos
+  // Load the product list once and preselect the first available product.
   useEffect(() => {
     axios.get(`${apiUrl}/api/products`)
       .then(response => {
-        // Garante que é um Array (evita erro caso a API retorne HTML/String)
+        // Guard against unexpected API responses.
         if (Array.isArray(response.data)) {
           setProducts(response.data);
           if (response.data.length > 0) {
@@ -32,10 +32,10 @@ function App() {
           }
         }
       })
-      .catch(error => console.error("Erro ao buscar produtos:", error));
+      .catch(error => console.error("Error loading products:", error));
   }, [apiUrl]);
 
-  // Busca o histórico do produto selecionado
+  // Refresh the chart data whenever the selected product changes.
   useEffect(() => {
     if (selectedProduct && selectedProduct !== '') {
       axios.get(`${apiUrl}/api/history/${selectedProduct}`)
@@ -44,11 +44,11 @@ function App() {
             setPriceData(response.data);
           }
         })
-        .catch(error => console.error("Erro ao buscar histórico:", error));
+        .catch(error => console.error("Error loading price history:", error));
     }
   }, [selectedProduct, apiUrl]);
 
-  // Filtra os dados com base no tempo selecionado
+  // Keep the chart focused on the selected time window.
   const filteredData = useMemo(() => {
     if (!priceData || priceData.length === 0) return [];
     if (timeRange === 'all') return priceData;
@@ -64,11 +64,11 @@ function App() {
     });
   }, [priceData, timeRange]);
 
-  // Calcula estatísticas do período
+  // Derive summary metrics from the filtered dataset.
   const stats = useMemo(() => {
     if (filteredData.length === 0) return { current: 0, min: 0, max: 0, avg: 0 };
 
-    // Como os dados vêm ordenados por data crescente, o último é o mais atual
+    // The history endpoint returns ascending dates, so the last value is the latest one.
     const prices = filteredData.map(d => parseFloat(d.price));
     const current = prices[prices.length - 1];
     const min = Math.min(...prices);
@@ -78,7 +78,7 @@ function App() {
     return { current, min, max, avg };
   }, [filteredData]);
 
-  // Prepara dados pro gráfico
+  // Split the series by store so each line can be rendered independently.
   const plotData = useMemo(() => {
     if (filteredData.length === 0) return [];
 
@@ -95,7 +95,7 @@ function App() {
         name: store,
         line: { color: colors[index % colors.length], width: 3 },
         marker: { size: 8 },
-        hovertemplate: 'Data: %{x|%d/%m/%Y}<br>Preço: R$ %{y:.2f}<extra></extra>',
+        hovertemplate: 'Date: %{x|%d/%m/%Y}<br>Price: BRL %{y:.2f}<extra></extra>',
       };
     });
   }, [filteredData]);
@@ -104,7 +104,16 @@ function App() {
     return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value);
   };
 
-  const selectedProductName = products.find(p => p.id === parseInt(selectedProduct))?.group_name || 'Selecione um produto';
+  const selectedProductData = products.find(p => p.id === parseInt(selectedProduct, 10));
+  const selectedProductName = selectedProductData?.name || 'Selecione um produto';
+  const selectedProductGroup = selectedProductData?.group_name;
+  const getProductLabel = (product) => {
+    if (!product.group_name) {
+      return product.name;
+    }
+
+    return `${product.name}`;
+  };
 
   return (
     <div className="min-h-screen bg-gray-50 text-gray-800">
@@ -115,7 +124,7 @@ function App() {
             <div className="p-2 bg-blue-600 rounded-lg text-white">
               <Activity size={24} />
             </div>
-            <h1 className="text-xl font-bold text-gray-900">Análise de Preços BR</h1>
+            <h1 className="text-xl font-bold text-gray-900">Collect prices</h1>
           </div>
         </div>
       </header>
@@ -137,7 +146,7 @@ function App() {
               >
                 {products.length === 0 && <option value="">Carregando...</option>}
                 {products.map(p => (
-                  <option key={p.id} value={p.id}>{p.group_name}</option>
+                  <option key={p.id} value={p.id}>{getProductLabel(p)}</option>
                 ))}
               </select>
             </div>
@@ -202,7 +211,10 @@ function App() {
 
         {/* Chart Section */}
         <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-2 sm:p-6">
-          <h2 className="text-lg font-bold text-gray-800 mb-4 px-4 sm:px-0">Histórico de Preços: {selectedProductName}</h2>
+          <h2 className="text-lg font-bold text-gray-800 mb-1 px-4 sm:px-0">Preço Histórico: {selectedProductName}</h2>
+          {selectedProductGroup && (
+            <p className="text-sm text-gray-500 mb-4 px-4 sm:px-0">Grupo: {selectedProductGroup}</p>
+          )}
 
           {filteredData.length > 0 ? (
             <Plot
@@ -212,18 +224,17 @@ function App() {
                 margin: { l: 60, r: 20, b: 60, t: 20, pad: 4 },
                 xaxis: {
                   title: '',
-                  showgrid: true,
-                  gridcolor: '#f3f4f6',
+                  showgrid: false,
                   tickformat: '%d/%m/%Y'
                 },
                 yaxis: {
                   title: 'Preço (R$)',
                   showgrid: true,
-                  gridcolor: '#f3f4f6',
+                  gridcolor: '#bbbcbdd2',
                   tickprefix: 'R$ '
                 },
                 plot_bgcolor: 'rgba(0,0,0,0)',
-                paper_bgcolor: 'rgba(0,0,0,0)',
+                paper_bgcolor: 'rgba(61, 61, 61, 0)',
                 legend: { orientation: 'h', y: -0.2 }
               }}
               useResizeHandler={true}

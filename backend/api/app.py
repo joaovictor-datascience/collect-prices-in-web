@@ -18,13 +18,34 @@ def get_db_connection():
     return psycopg2.connect(os.getenv("DATABASE_URL"), cursor_factory=RealDictCursor)
 
 
+def normalize_optional_text(value):
+    # Store empty strings as NULL so optional fields remain truly optional.
+    if value is None:
+        return None
+
+    normalized = value.strip()
+    return normalized or None
+
+
+def normalize_required_text(value, field_name):
+    normalized = normalize_optional_text(value)
+    if not normalized:
+        raise ValueError(f"{field_name} is required")
+    return normalized
+
+
+def get_product_display_order():
+    # Prefer grouped products first, then fall back to the product name.
+    return "ORDER BY COALESCE(group_name, name), name"
+
+
 # ──────────────────────────────────────────────
 #  PRODUCTS — CRUD
 # ──────────────────────────────────────────────
 
 @app.route('/api/products', methods=['GET'])
 def get_products():
-    """Lista todos os produtos. Query param ?active=true/false para filtrar."""
+    """List all products. Use ?active=true/false to filter the result set."""
     try:
         with get_db_connection() as conn:
             with conn.cursor() as cur:
@@ -33,17 +54,17 @@ def get_products():
                 if active_filter is not None:
                     active_value = active_filter.lower() == 'true'
                     cur.execute(
-                        """SELECT id, group_name, active, created_at, updated_at
+                        f"""SELECT id, name, group_name, active, created_at, updated_at
                            FROM products
                            WHERE active = %s
-                           ORDER BY group_name""",
+                           {get_product_display_order()}""",
                         (active_value,)
                     )
                 else:
                     cur.execute(
-                        """SELECT id, group_name, active, created_at, updated_at
+                        f"""SELECT id, name, group_name, active, created_at, updated_at
                            FROM products
-                           ORDER BY group_name"""
+                           {get_product_display_order()}"""
                     )
 
                 products = cur.fetchall()
@@ -54,28 +75,29 @@ def get_products():
 
 @app.route('/api/products', methods=['POST'])
 def create_product():
-    """Cria um novo produto. Body: {"group_name": "...", "urls": ["url1", "url2"]}"""
+    """Create a product. Body: {"name": "...", "group_name": "...", "urls": ["url1", "url2"]}"""
     try:
         data = request.get_json()
 
-        if not data or not data.get('group_name'):
-            return jsonify({"error": "group_name é obrigatório"}), 400
+        if not data:
+            return jsonify({"error": "Request body cannot be empty"}), 400
 
-        group_name = data['group_name'].strip()
+        name = normalize_required_text(data.get('name'), 'name')
+        group_name = normalize_optional_text(data.get('group_name'))
         urls = data.get('urls', [])
 
         with get_db_connection() as conn:
             with conn.cursor() as cur:
-                # Cria o produto
+                # Create the product first so the URLs can reference its id.
                 cur.execute(
-                    """INSERT INTO products (group_name)
-                       VALUES (%s)
-                       RETURNING id, group_name, active, created_at, updated_at""",
-                    (group_name,)
+                    """INSERT INTO products (name, group_name)
+                       VALUES (%s, %s)
+                       RETURNING id, name, group_name, active, created_at, updated_at""",
+                    (name, group_name)
                 )
                 product = cur.fetchone()
 
-                # Adiciona as URLs se fornecidas
+                # Add only non-empty URLs from the payload.
                 created_urls = []
                 for url in urls:
                     url = url.strip()
@@ -91,42 +113,48 @@ def create_product():
                 product['urls'] = created_urls
 
         return jsonify(product), 201
+    except ValueError as e:
+        return jsonify({"error": str(e)}), 400
     except psycopg2.errors.UniqueViolation:
-        return jsonify({"error": f"Produto '{group_name}' já existe"}), 409
+        return jsonify({"error": f"Product '{name}' already exists"}), 409
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
 
 @app.route('/api/products/<int:product_id>', methods=['PUT'])
 def update_product(product_id):
-    """Atualiza produto. Body: {"group_name": "...", "active": true/false}"""
+    """Update a product. Body: {"name": "...", "group_name": "...", "active": true/false}"""
     try:
         data = request.get_json()
 
         if not data:
-            return jsonify({"error": "Corpo da requisição vazio"}), 400
+            return jsonify({"error": "Request body cannot be empty"}), 400
 
         with get_db_connection() as conn:
             with conn.cursor() as cur:
-                # Verifica se o produto existe
+                # Fail fast if the product does not exist.
                 cur.execute("SELECT id FROM products WHERE id = %s", (product_id,))
                 if not cur.fetchone():
-                    return jsonify({"error": "Produto não encontrado"}), 404
+                    return jsonify({"error": "Product not found"}), 404
 
-                # Monta o update dinamicamente
+                # Build the update only with the fields present in the request.
                 fields = []
                 values = []
 
+                if 'name' in data:
+                    fields.append("name = %s")
+                    values.append(normalize_required_text(data.get('name'), 'name'))
+
                 if 'group_name' in data:
                     fields.append("group_name = %s")
-                    values.append(data['group_name'].strip())
+                    values.append(normalize_optional_text(data.get('group_name')))
 
                 if 'active' in data:
                     fields.append("active = %s")
                     values.append(data['active'])
 
                 if not fields:
-                    return jsonify({"error": "Nenhum campo para atualizar"}), 400
+                    return jsonify({"error": "No fields provided for update"}), 400
 
                 fields.append("updated_at = NOW()")
                 values.append(product_id)
@@ -135,29 +163,31 @@ def update_product(product_id):
                     f"""UPDATE products
                         SET {', '.join(fields)}
                         WHERE id = %s
-                        RETURNING id, group_name, active, created_at, updated_at""",
+                        RETURNING id, name, group_name, active, created_at, updated_at""",
                     values
                 )
                 product = cur.fetchone()
 
         return jsonify(product)
+    except ValueError as e:
+        return jsonify({"error": str(e)}), 400
     except psycopg2.errors.UniqueViolation:
-        return jsonify({"error": "Já existe um produto com esse nome"}), 409
+        return jsonify({"error": "A product with this name already exists"}), 409
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
 
 @app.route('/api/products/<int:product_id>', methods=['DELETE'])
 def delete_product(product_id):
-    """Soft delete: desativa o produto e todas as suas URLs."""
+    """Soft delete a product and all URLs linked to it."""
     try:
         with get_db_connection() as conn:
             with conn.cursor() as cur:
                 cur.execute("SELECT id FROM products WHERE id = %s", (product_id,))
                 if not cur.fetchone():
-                    return jsonify({"error": "Produto não encontrado"}), 404
+                    return jsonify({"error": "Product not found"}), 404
 
-                # Soft delete — desativa produto e todas as URLs
+                # Keep history intact while hiding the product from active flows.
                 cur.execute(
                     "UPDATE products SET active = FALSE, updated_at = NOW() WHERE id = %s",
                     (product_id,)
@@ -167,7 +197,7 @@ def delete_product(product_id):
                     (product_id,)
                 )
 
-        return jsonify({"message": "Produto desativado com sucesso"}), 200
+        return jsonify({"message": "Product deactivated successfully"}), 200
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
@@ -178,13 +208,13 @@ def delete_product(product_id):
 
 @app.route('/api/products/<int:product_id>/urls', methods=['GET'])
 def get_product_urls(product_id):
-    """Lista as URLs de um produto."""
+    """List all URLs linked to a product."""
     try:
         with get_db_connection() as conn:
             with conn.cursor() as cur:
                 cur.execute("SELECT id FROM products WHERE id = %s", (product_id,))
                 if not cur.fetchone():
-                    return jsonify({"error": "Produto não encontrado"}), 404
+                    return jsonify({"error": "Product not found"}), 404
 
                 cur.execute(
                     """SELECT id, product_id, url, active, created_at
@@ -201,12 +231,12 @@ def get_product_urls(product_id):
 
 @app.route('/api/products/<int:product_id>/urls', methods=['POST'])
 def add_product_url(product_id):
-    """Adiciona uma URL a um produto. Body: {"url": "https://..."}"""
+    """Add a URL to a product. Body: {"url": "https://..."}"""
     try:
         data = request.get_json()
 
         if not data or not data.get('url'):
-            return jsonify({"error": "url é obrigatório"}), 400
+            return jsonify({"error": "url is required"}), 400
 
         url = data['url'].strip()
 
@@ -214,7 +244,7 @@ def add_product_url(product_id):
             with conn.cursor() as cur:
                 cur.execute("SELECT id FROM products WHERE id = %s", (product_id,))
                 if not cur.fetchone():
-                    return jsonify({"error": "Produto não encontrado"}), 404
+                    return jsonify({"error": "Product not found"}), 404
 
                 cur.execute(
                     """INSERT INTO product_urls (product_id, url)
@@ -226,25 +256,25 @@ def add_product_url(product_id):
 
         return jsonify(new_url), 201
     except psycopg2.errors.UniqueViolation:
-        return jsonify({"error": "Essa URL já está cadastrada"}), 409
+        return jsonify({"error": "This URL is already registered"}), 409
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
 
 @app.route('/api/urls/<int:url_id>', methods=['PUT'])
 def update_url(url_id):
-    """Atualiza uma URL. Body: {"url": "...", "active": true/false}"""
+    """Update a URL. Body: {"url": "...", "active": true/false}"""
     try:
         data = request.get_json()
 
         if not data:
-            return jsonify({"error": "Corpo da requisição vazio"}), 400
+            return jsonify({"error": "Request body cannot be empty"}), 400
 
         with get_db_connection() as conn:
             with conn.cursor() as cur:
                 cur.execute("SELECT id FROM product_urls WHERE id = %s", (url_id,))
                 if not cur.fetchone():
-                    return jsonify({"error": "URL não encontrada"}), 404
+                    return jsonify({"error": "URL not found"}), 404
 
                 fields = []
                 values = []
@@ -258,7 +288,7 @@ def update_url(url_id):
                     values.append(data['active'])
 
                 if not fields:
-                    return jsonify({"error": "Nenhum campo para atualizar"}), 400
+                    return jsonify({"error": "No fields provided for update"}), 400
 
                 values.append(url_id)
 
@@ -273,24 +303,24 @@ def update_url(url_id):
 
         return jsonify(updated_url)
     except psycopg2.errors.UniqueViolation:
-        return jsonify({"error": "Essa URL já está cadastrada em outro produto"}), 409
+        return jsonify({"error": "This URL is already registered for another product"}), 409
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
 
 @app.route('/api/urls/<int:url_id>', methods=['DELETE'])
 def delete_url(url_id):
-    """Remove uma URL permanentemente."""
+    """Remove a URL permanently."""
     try:
         with get_db_connection() as conn:
             with conn.cursor() as cur:
                 cur.execute("SELECT id FROM product_urls WHERE id = %s", (url_id,))
                 if not cur.fetchone():
-                    return jsonify({"error": "URL não encontrada"}), 404
+                    return jsonify({"error": "URL not found"}), 404
 
                 cur.execute("DELETE FROM product_urls WHERE id = %s", (url_id,))
 
-        return jsonify({"message": "URL removida com sucesso"}), 200
+        return jsonify({"message": "URL removed successfully"}), 200
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
@@ -301,7 +331,7 @@ def delete_url(url_id):
 
 @app.route('/api/history/<int:product_id>', methods=['GET'])
 def get_price_history(product_id):
-    """Retorna o histórico de preços de um produto."""
+    """Return the price history for a product."""
     try:
         with get_db_connection() as conn:
             with conn.cursor() as cur:
@@ -325,7 +355,7 @@ def get_price_history(product_id):
 
 @app.route('/api/stores', methods=['GET'])
 def get_stores():
-    """Lista todas as lojas."""
+    """List all stores."""
     try:
         with get_db_connection() as conn:
             with conn.cursor() as cur:

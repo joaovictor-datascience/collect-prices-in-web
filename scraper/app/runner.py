@@ -1,11 +1,10 @@
-import json
 import undetected_chromedriver as uc
 
 from .scrapers.amazon import AmazonScraper
 from .scrapers.kabum import KabumScraper
 
 
-# Mapeia domínio → classe do scraper
+# Map each supported domain to its scraper implementation.
 SCRAPERS = {
     "www.amazon.com.br": AmazonScraper,
     "www.kabum.com.br":  KabumScraper,
@@ -20,6 +19,7 @@ def get_scraper(url: str, browser):
 
 
 def run(products: dict):
+    # Reuse a single browser session so the scraping loop stays lightweight.
     options = uc.ChromeOptions()
     options.add_argument("--headless=new")
     browser = uc.Chrome(options=options, version_main=146)
@@ -27,24 +27,24 @@ def run(products: dict):
     results = []
 
     try:
-        for group_name, urls in products.items():
-            print(f"\nProduto: {group_name}")
+        for product_name, urls in products.items():
+            print(f"\nProduct: {product_name}")
 
             for url in urls:
                 scraper = get_scraper(url, browser)
 
                 if scraper is None:
-                    print(f"  [!] Loja não suportada: {url}")
+                    print(f"  [!] Unsupported store: {url}")
                     continue
 
                 result = scraper.scrape(url)
 
                 if result is not None:
-                    result["product_group"] = group_name
+                    result["product_name"] = product_name
                     results.append(result)
-                    print(f"  ✓ {result['store']} | R$ {result['price']:.2f} | {result['name'][:50]}")
+                    print(f"  ✓ {result['store']} | BRL {result['price']:.2f} | {result['name'][:50]}")
 
     finally:
-        browser.quit()  # fecha o browser mesmo se der erro no meio
+        browser.quit()  # Always close the browser, even if scraping fails.
 
     return results

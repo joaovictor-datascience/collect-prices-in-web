@@ -3,7 +3,6 @@ from .base import BaseScraper
 
 
 class AmazonScraper(BaseScraper):
-
     store_name = "Amazon"
 
     def extract(self, url: str) -> dict | None:
@@ -15,5 +14,5 @@ class AmazonScraper(BaseScraper):
 
         return {
             "name":  name,
-            "price": whole + "," + frac,  # ex: "1299.90"
+            "price": whole + "," + frac,  # Example: "1299,90"
         }

@@ -3,7 +3,6 @@ from .base import BaseScraper
 
 
 class KabumScraper(BaseScraper):
-
     store_name = "Kabum"
 
     def extract(self, url: str) -> dict | None:
@@ -14,5 +13,5 @@ class KabumScraper(BaseScraper):
 
         return {
             "name":  name,
-            "price": price,  # ex: "R$ 1.299,90" — _parse_price cuida da limpeza
+            "price": price,  # Example: "R$ 1.299,90" parsed later by _parse_price.
         }

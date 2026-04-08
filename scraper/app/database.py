@@ -1,5 +1,4 @@
 import os
-from datetime import datetime
 
 import psycopg2
 from dotenv import load_dotenv
@@ -12,14 +11,31 @@ def get_connection():
 
 
 def create_tables():
+    # Keep schema creation and lightweight migration together so the scraper can
+    # bootstrap a fresh database and upgrade older product rows in one pass.
     sql = """
     CREATE TABLE IF NOT EXISTS products (
         id          SERIAL PRIMARY KEY,
-        group_name  TEXT UNIQUE NOT NULL,
+        name        TEXT NOT NULL,
+        group_name  TEXT,
         active      BOOLEAN DEFAULT TRUE,
         created_at  TIMESTAMPTZ DEFAULT NOW(),
         updated_at  TIMESTAMPTZ DEFAULT NOW()
     );
+
+    ALTER TABLE products
+        ADD COLUMN IF NOT EXISTS name TEXT;
+
+    ALTER TABLE products
+        ADD COLUMN IF NOT EXISTS group_name TEXT;
+
+    UPDATE products
+       SET name = group_name
+     WHERE name IS NULL
+       AND group_name IS NOT NULL;
+
+    ALTER TABLE products
+        ALTER COLUMN name SET NOT NULL;
 
     CREATE TABLE IF NOT EXISTS product_urls (
         id          SERIAL PRIMARY KEY,
@@ -46,8 +62,27 @@ def create_tables():
     CREATE INDEX IF NOT EXISTS idx_price_history_lookup
         ON price_history(product_id, scraped_at DESC);
 
+    CREATE UNIQUE INDEX IF NOT EXISTS idx_products_name_unique
+        ON products(name);
+
+    CREATE INDEX IF NOT EXISTS idx_products_group_name
+        ON products(group_name)
+        WHERE group_name IS NOT NULL;
+
     CREATE INDEX IF NOT EXISTS idx_product_urls_active
         ON product_urls(product_id) WHERE active = TRUE;
+
+    DO $$
+    BEGIN
+        IF EXISTS (
+            SELECT 1
+              FROM information_schema.table_constraints
+             WHERE table_name = 'products'
+               AND constraint_name = 'products_group_name_key'
+        ) THEN
+            ALTER TABLE products DROP CONSTRAINT products_group_name_key;
+        END IF;
+    END $$;
     """
     with get_connection() as conn:
         with conn.cursor() as cur:
@@ -55,37 +90,35 @@ def create_tables():
 
 
 def get_products_to_scrape() -> dict:
-    """Busca produtos e URLs ativos do banco.
-    Retorna: {"group_name": ["url1", "url2"], ...}
-    """
+    """Return active products and URLs as {"name": ["url1", "url2"], ...}."""
     with get_connection() as conn:
         with conn.cursor() as cur:
             cur.execute("""
-                SELECT p.group_name, pu.url
+                SELECT p.name, pu.url
                 FROM product_urls pu
                 JOIN products p ON p.id = pu.product_id
                 WHERE pu.active = TRUE
                   AND p.active = TRUE
-                ORDER BY p.group_name
+                ORDER BY p.name
             """)
             rows = cur.fetchall()
 
     products = {}
-    for group_name, url in rows:
-        products.setdefault(group_name, []).append(url)
+    for name, url in rows:
+        products.setdefault(name, []).append(url)
     return products
 
 
-def get_or_create_product(conn, group_name: str) -> int:
+def get_or_create_product(conn, name: str) -> int:
     with conn.cursor() as cur:
         cur.execute(
-            "INSERT INTO products (group_name) VALUES (%s)"
-            " ON CONFLICT (group_name) DO NOTHING",
-            (group_name,)
+            "INSERT INTO products (name) VALUES (%s)"
+            " ON CONFLICT (name) DO NOTHING",
+            (name,)
         )
         cur.execute(
-            "SELECT id FROM products WHERE group_name = %s",
-            (group_name,)
+            "SELECT id FROM products WHERE name = %s",
+            (name,)
         )
         return cur.fetchone()[0]
 
@@ -106,7 +139,8 @@ def get_or_create_store(conn, store_name: str) -> int:
 
 def save_result(result: dict):
     with get_connection() as conn:
-        product_id = get_or_create_product(conn, result["product_group"])
+        # Resolve foreign keys before inserting the historical price snapshot.
+        product_id = get_or_create_product(conn, result["product_name"])
         store_id = get_or_create_store(conn, result["store"])
 
         with conn.cursor() as cur:
