@@ -4,7 +4,7 @@ import axios from 'axios';
 const EMPTY_PRODUCT_EDIT = { name: '', group_name: '' };
 
 export function useProducts(setNotice) {
-  const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+  const apiUrl = import.meta.env.VITE_API_URL;
   const [products, setProducts] = useState([]);
   const [selectedProduct, setSelectedProduct] = useState('');
   const [priceData, setPriceData] = useState([]);

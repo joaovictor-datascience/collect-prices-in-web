@@ -1,4 +1,7 @@
+/* ── libs react ──  */
 import { useState } from 'react';
+
+  /* ── icons ──  */
 import {
   Activity,
   Calendar,
@@ -9,7 +12,8 @@ import {
   TrendingDown,
   TrendingUp
 } from 'lucide-react';
-
+  
+/* ── components react ──  */
 import { ThemeToggle } from './components/ThemeToggle';
 import { ProductChart } from './components/ProductChart';
 import { StoreCard } from './components/StoreCard';
@@ -24,6 +28,7 @@ import { useProductAnalytics } from './hooks/useProductAnalytics';
 import { useProducts } from './hooks/useProducts';
 import { formatCurrency } from './utils/currency';
 
+/* ── stage config ──  */
 export default function App() {
   const { theme, toggle: toggleTheme, isDark } = useTheme();
   const [notice, setNotice] = useState(null);
@@ -63,7 +68,7 @@ export default function App() {
     <div className="app-shell">
       <header className="topbar">
         <div>
-          <p className="topbar-kicker">Monitoramento de preco</p>
+          <p className="topbar-kicker">Monitoramento de preço</p>
           <h1>Collect prices</h1>
           <p className="topbar-subtitle">
             Cadastre produtos, gerencie links por loja e acompanhe o historico com comparativos mais claros.
@@ -77,12 +82,12 @@ export default function App() {
       <section className="hero-panel">
         <div className="panel-header">
           <div>
-            <p className="eyebrow">Visao geral</p>
+            <p className="eyebrow">Visão geral</p>
             <h2>{selectedProductLabel}</h2>
           </div>
 
           {/* ── Action buttons ─────────────────────────────────────────── */}
-          <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'center' }}>
+          <div className="panel-actions">
             <ProductFormModal
               products={products}
               onSubmit={handleProductSubmit}

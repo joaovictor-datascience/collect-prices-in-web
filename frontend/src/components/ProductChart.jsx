@@ -61,7 +61,7 @@ export function ProductChart({
               font: { color: isDark ? '#e2e8f0' : '#475569' }
             }
           }}
-          style={{ width: '100%', height: '430px' }}
+          className="chart-plot"
           config={{ displayModeBar: false, responsive: true }}
           useResizeHandler
         />
