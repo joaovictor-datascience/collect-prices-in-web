@@ -71,7 +71,7 @@ export default function App() {
           <p className="topbar-kicker">Monitoramento de preço</p>
           <h1>Collect prices</h1>
           <p className="topbar-subtitle">
-            Cadastre produtos, gerencie links por loja e acompanhe o historico com comparativos mais claros.
+            Cadastre produtos, gerencie links por loja e acompanhe o histórico com comparativos mais claros.
           </p>
         </div>
         <ThemeToggle theme={theme} onToggle={toggleTheme} />
@@ -153,15 +153,15 @@ export default function App() {
           </label>
 
           <label className="field">
-            <span className="field-label">Periodo</span>
+            <span className="field-label">Período</span>
             <div className="field-input field-input--select">
               <Calendar size={18} />
               <select value={timeRange} onChange={(e) => setTimeRange(e.target.value)}>
-                <option value="7">Ultimos 7 dias</option>
-                <option value="30">Ultimos 30 dias</option>
-                <option value="60">Ultimos 60 dias</option>
-                <option value="90">Ultimos 90 dias</option>
-                <option value="all">Todo o historico</option>
+                <option value="7">Últimos 7 dias</option>
+                <option value="30">Últimos 30 dias</option>
+                <option value="60">Últimos 60 dias</option>
+                <option value="90">Últimos 90 dias</option>
+                <option value="all">Todo o histórico</option>
               </select>
             </div>
           </label>
@@ -173,9 +173,9 @@ export default function App() {
           </div>
 
           <div className="toolbar-card">
-            <span className="eyebrow">Lojas no grafico</span>
+            <span className="eyebrow">Lojas no gráfico</span>
             <strong>{storeStats.length}</strong>
-            <span>{filteredData.length} captura(s) no periodo</span>
+            <span>{filteredData.length} captura(s) no período</span>
           </div>
         </div>
       </section>
@@ -183,10 +183,10 @@ export default function App() {
       <main className="content-grid">
         <section className="analytics-column">
           <div className="metrics-grid">
-            <MetricCard icon={<DollarSign size={22} />} label="Preco atual" value={formatCurrency(overallStats.current)} tone="blue" />
-            <MetricCard icon={<TrendingDown size={22} />} label="Menor preco" value={formatCurrency(overallStats.min)} tone="green" />
-            <MetricCard icon={<TrendingUp size={22} />} label="Maior preco" value={formatCurrency(overallStats.max)} tone="red" />
-            <MetricCard icon={<Activity size={22} />} label="Media do periodo" value={formatCurrency(overallStats.avg)} tone="amber" />
+            <MetricCard icon={<DollarSign size={22} />} label="Preço atual" value={formatCurrency(overallStats.current)} tone="blue" />
+            <MetricCard icon={<TrendingDown size={22} />} label="Menor preço" value={formatCurrency(overallStats.min)} tone="green" />
+            <MetricCard icon={<TrendingUp size={22} />} label="Maior preço" value={formatCurrency(overallStats.max)} tone="red" />
+            <MetricCard icon={<Activity size={22} />} label="Média do período" value={formatCurrency(overallStats.avg)} tone="amber" />
           </div>
 
           <ProductChart
@@ -200,7 +200,7 @@ export default function App() {
           <section className="panel">
             <div className="panel-header">
               <div>
-                <p className="eyebrow">Cards abaixo do grafico</p>
+                <p className="eyebrow">Cards abaixo do gráfico</p>
                 <h2>Resumo por loja</h2>
               </div>
             </div>
@@ -212,7 +212,7 @@ export default function App() {
                 ))}
               </div>
             ) : (
-              <EmptyPanel icon={<Store size={40} />} title="Sem cards por loja" description="Os cards aparecem quando o produto possui historico no periodo selecionado." />
+              <EmptyPanel icon={<Store size={40} />} title="Sem cards por loja" description="Os cards aparecem quando o produto possui histórico no período selecionado." />
             )}
           </section>
         </section>

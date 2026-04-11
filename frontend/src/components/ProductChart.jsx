@@ -16,8 +16,8 @@ export function ProductChart({
     <section className="panel">
       <div className="panel-header">
         <div>
-          <p className="eyebrow">Historico</p>
-          <h2>Preco por loja</h2>
+          <p className="eyebrow">Histórico</p>
+          <h2>Preço por loja</h2>
         </div>
         {selectedProductData?.group_name && (
           <span className="pill">{selectedProductData.group_name}</span>
@@ -27,8 +27,8 @@ export function ProductChart({
       {loadingHistory ? (
         <EmptyPanel
           icon={<RefreshCcw size={40} />}
-          title="Carregando historico"
-          description="Estamos buscando as ultimas capturas desse produto."
+          title="Carregando histórico"
+          description="Estamos buscando as últimas capturas desse produto."
         />
       ) : filteredData.length ? (
         <Plot
@@ -49,7 +49,7 @@ export function ProductChart({
               color: isDark ? '#cbd5e1' : '#4b5563'
             },
             yaxis: {
-              title: 'Preco (R$)',
+              title: 'Preço (R$)',
               showgrid: true,
               gridcolor: isDark ? 'rgba(148,163,184,0.18)' : 'rgba(71,85,105,0.16)',
               tickprefix: 'R$ ',
@@ -68,8 +68,8 @@ export function ProductChart({
       ) : (
         <EmptyPanel
           icon={<Activity size={40} />}
-          title="Sem dados para o periodo"
-          description="Altere o periodo ou selecione outro produto para visualizar capturas disponiveis."
+          title="Sem dados para o período"
+          description="Altere o período ou selecione outro produto para visualizar capturas disponíveis."
         />
       )}
     </section>

@@ -17,19 +17,19 @@ export function StoreCard({ store, productName }) {
 
       <div className="store-stats-list">
         <div>
-          <span>Maior preco</span>
+          <span>Maior preço</span>
           <strong>{formatCurrency(store.max)}</strong>
         </div>
         <div>
-          <span>Menor preco</span>
+          <span>Menor preço</span>
           <strong>{formatCurrency(store.min)}</strong>
         </div>
         <div>
-          <span>Media</span>
+          <span>Média</span>
           <strong>{formatCurrency(store.avg)}</strong>
         </div>
         <div>
-          <span>Ultima captura</span>
+          <span>Última captura</span>
           <strong>{formatCurrency(store.latestPrice)}</strong>
         </div>
       </div>

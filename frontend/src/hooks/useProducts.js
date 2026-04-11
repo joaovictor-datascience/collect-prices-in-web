@@ -37,7 +37,7 @@ export function useProducts(setNotice) {
         });
       }
     } catch {
-      setNotice({ type: 'error', message: 'Nao foi possivel carregar os produtos.' });
+      setNotice({ type: 'error', message: 'Não foi possível carregar os produtos.' });
     } finally {
       setLoadingProducts(false);
     }
@@ -50,7 +50,7 @@ export function useProducts(setNotice) {
       setPriceData(Array.isArray(response.data) ? response.data : []);
     } catch {
       setPriceData([]);
-      setNotice({ type: 'error', message: 'Nao foi possivel carregar o historico do produto.' });
+      setNotice({ type: 'error', message: 'Não foi possível carregar o histórico do produto.' });
     } finally {
       setLoadingHistory(false);
     }
@@ -63,7 +63,7 @@ export function useProducts(setNotice) {
       setProductUrls(Array.isArray(response.data) ? response.data : []);
     } catch {
       setProductUrls([]);
-      setNotice({ type: 'error', message: 'Nao foi possivel carregar os links do produto.' });
+      setNotice({ type: 'error', message: 'Não foi possível carregar os links do produto.' });
     } finally {
       setLoadingUrls(false);
     }
@@ -105,15 +105,15 @@ export function useProducts(setNotice) {
         setSelectedProduct(String(existingMatch.id));
         await refreshSelectedProductData(existingMatch.id);
         if (result.created.length) {
-          const suffix = result.duplicated.length ? ` ${result.duplicated.length} link(s) ja existiam.` : '';
+          const suffix = result.duplicated.length ? ` ${result.duplicated.length} link(s) já existiam.` : '';
           setNotice({ type: 'success', message: `${result.created.length} novo(s) link(s) adicionados ao produto existente.${suffix}` });
           return true;
         }
         if (result.duplicated.length) {
-          setNotice({ type: 'info', message: 'Os links informados ja estavam cadastrados para esse produto.' });
+          setNotice({ type: 'info', message: 'Os links informados já estavam cadastrados para esse produto.' });
           return true;
         }
-        setNotice({ type: 'error', message: 'Nao foi possivel adicionar os novos links ao produto existente.' });
+        setNotice({ type: 'error', message: 'Não foi possível adicionar os novos links ao produto existente.' });
         return false;
       }
 
@@ -124,7 +124,7 @@ export function useProducts(setNotice) {
       return true;
     } catch (error) {
       const msg = error.response?.data?.error;
-      setNotice({ type: 'error', message: msg || 'Nao foi possivel salvar o produto agora.' });
+      setNotice({ type: 'error', message: msg || 'Não foi possível salvar o produto agora.' });
       return false;
     } finally {
       setSubmittingProduct(false);
@@ -142,7 +142,7 @@ export function useProducts(setNotice) {
       return true;
     } catch (error) {
       const msg = error.response?.data?.error;
-      setNotice({ type: 'error', message: msg || 'Nao foi possivel atualizar o produto.' });
+      setNotice({ type: 'error', message: msg || 'Não foi possível atualizar o produto.' });
       return false;
     } finally {
       setSavingProduct(false);
@@ -153,7 +153,7 @@ export function useProducts(setNotice) {
     if (!selectedProductData) return;
     const trimmed = newLink.trim();
     if (!trimmed) {
-      setNotice({ type: 'error', message: 'Informe um link valido para adicionar.' });
+      setNotice({ type: 'error', message: 'Informe um link válido para adicionar.' });
       return;
     }
     setSubmittingLink(true);
@@ -164,7 +164,7 @@ export function useProducts(setNotice) {
       setNotice({ type: 'success', message: 'Novo link adicionado ao produto.' });
     } catch (error) {
       const msg = error.response?.data?.error;
-      setNotice({ type: 'error', message: msg || 'Nao foi possivel adicionar o novo link.' });
+      setNotice({ type: 'error', message: msg || 'Não foi possível adicionar o novo link.' });
     } finally {
       setSubmittingLink(false);
     }
@@ -173,7 +173,7 @@ export function useProducts(setNotice) {
   async function handleSaveLink(linkId) {
     const draft = linkDrafts[linkId];
     if (!draft?.url?.trim()) {
-      setNotice({ type: 'error', message: 'O link nao pode ficar vazio.' });
+      setNotice({ type: 'error', message: 'O link não pode ficar vazio.' });
       return;
     }
     setSavingLinkId(linkId);
@@ -183,7 +183,7 @@ export function useProducts(setNotice) {
       setNotice({ type: 'success', message: 'Link atualizado com sucesso.' });
     } catch (error) {
       const msg = error.response?.data?.error;
-      setNotice({ type: 'error', message: msg || 'Nao foi possivel atualizar esse link.' });
+      setNotice({ type: 'error', message: msg || 'Não foi possível atualizar esse link.' });
     } finally {
       setSavingLinkId(null);
     }

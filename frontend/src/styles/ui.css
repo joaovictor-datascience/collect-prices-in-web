@@ -41,6 +41,10 @@
   color: var(--text);
 }
 
+.theme-toggle {
+  width: 160px;
+}
+
 .theme-toggle,
 .secondary-button,
 .primary-button,
@@ -50,10 +54,10 @@
 }
 
 .primary-button {
-  border: 1px solid transparent;
+  border: none;
   background: linear-gradient(135deg, var(--primary) 0%, var(--primary-strong) 100%);
   color: white;
-  box-shadow: 0 14px 30px rgba(47, 111, 237, 0.24);
+  box-shadow: 0 8px 18px rgba(47, 111, 237, 0.24);
 }
 
 .primary-button:disabled,
@@ -131,7 +135,7 @@
   display: flex;
   flex-direction: column;
   justify-content: center;
-  padding: 18px 20px;
+  padding: 0px 20px;
   min-height: 112px;
 }
 
@@ -147,9 +151,22 @@
 
 .metric-card {
   display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding: 18px 20px;
+  min-height: 112px;
+}
+
+.metric-title{
+  margin: 0;
   align-items: center;
+}
+
+.metric-content {
+  display: flex;
+  align-items: center;
+  margin: 8px 0 0 0;
   gap: 16px;
-  padding: 20px;
 }
 
 .metric-icon {
@@ -182,7 +199,7 @@
 }
 
 .metric-value {
-  margin: 6px 0 0;
+  margin: 0;
   font-size: clamp(1.4rem, 2vw, 1.95rem);
   font-weight: 700;
   letter-spacing: -0.04em;
@@ -230,7 +247,6 @@
 }
 
 .field input:focus,
-.field select:focus,
 .field textarea:focus,
 .field-input:focus-within {
   border-color: var(--border-strong);
