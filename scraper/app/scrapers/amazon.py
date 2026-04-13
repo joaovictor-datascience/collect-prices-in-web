@@ -8,9 +8,9 @@ class AmazonScraper(BaseScraper):
     def extract(self, url: str) -> dict | None:
         self.browser.get(url)
 
-        whole = self.browser.find_element(By.CLASS_NAME, "a-price-whole").text
-        frac  = self.browser.find_element(By.CLASS_NAME, "a-price-fraction").text
+        price = self.browser.find_element(By.CLASS_NAME, "a-price-whole").text
+        price_frac  = self.browser.find_element(By.CLASS_NAME, "a-price-fraction").text
 
         return {
-            "price": whole + "," + frac,  # Example: "1299,90"
+            "price": price + "," + price_frac,  # Example: "1299,90"
         }

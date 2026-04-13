@@ -1,13 +1,37 @@
 import undetected_chromedriver as uc
+import time
+import random
+
 
 from .scrapers.amazon import AmazonScraper
+from .scrapers.americanas import AmericanasScraper
+from .scrapers.carrefour import CarrefourScraper
+from .scrapers.casasbahia import CasasBahiaScraper
+from .scrapers.extra import ExtraScraper
+from .scrapers.fastshop import FastShopScraper
 from .scrapers.kabum import KabumScraper
-
+from .scrapers.magazineluiza import MagazineLuizaScraper
+from .scrapers.mercadolivre import MercadoLivreScraper
+from .scrapers.netshoes import NetshoeScraper
+from .scrapers.ponto import PontoScraper
+from .scrapers.samsung import SamsungScraper
 
 # Map each supported domain to its scraper implementation.
 SCRAPERS = {
-    "www.amazon.com.br": AmazonScraper,
-    "www.kabum.com.br":  KabumScraper,
+    "amazon.com.br": AmazonScraper,
+    "americanas.com.br": AmericanasScraper,
+    "casasbahia.com.br": CasasBahiaScraper,
+    "carrefour.com.br": CarrefourScraper,
+    "extra.com.br": ExtraScraper,
+    "fastshop.com.br": FastShopScraper,
+    "kabum.com.br": KabumScraper,
+    "magazineluiza.com.br": MagazineLuizaScraper,
+    "mercadolivre.com.br": MercadoLivreScraper,
+    "netshoes.com.br": NetshoeScraper,
+    "ponto.com.br": PontoScraper,
+    "pontofrio.com.br": PontoScraper,
+    "samsung.com.br": SamsungScraper,
+    "samsung.com": SamsungScraper,
 }
 
 
@@ -21,8 +45,10 @@ def get_scraper(url: str, browser):
 def run(products: dict):
     # Reuse a single browser session so the scraping loop stays lightweight.
     options = uc.ChromeOptions()
-    options.add_argument("--headless=new")
+    # options.add_argument("--headless=new")
     browser = uc.Chrome(options=options, version_main=146)
+    browser.implicitly_wait(4)
+    time.sleep(random.uniform(1, 3))
 
     results = []
 
