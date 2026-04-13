@@ -7,14 +7,12 @@ export function useProducts(setNotice) {
   const apiUrl = import.meta.env.VITE_API_URL;
   const [products, setProducts] = useState([]);
   const [selectedProduct, setSelectedProduct] = useState('');
-  const [priceData, setPriceData] = useState([]);
   const [productUrls, setProductUrls] = useState([]);
   const [productEdit, setProductEdit] = useState(EMPTY_PRODUCT_EDIT);
   const [newLink, setNewLink] = useState('');
   const [linkDrafts, setLinkDrafts] = useState({});
 
   const [loadingProducts, setLoadingProducts] = useState(false);
-  const [loadingHistory, setLoadingHistory] = useState(false);
   const [loadingUrls, setLoadingUrls] = useState(false);
   const [submittingProduct, setSubmittingProduct] = useState(false);
   const [savingProduct, setSavingProduct] = useState(false);
@@ -43,19 +41,6 @@ export function useProducts(setNotice) {
     }
   }
 
-  async function loadPriceHistory(productId) {
-    setLoadingHistory(true);
-    try {
-      const response = await axios.get(`${apiUrl}/api/history/${productId}`);
-      setPriceData(Array.isArray(response.data) ? response.data : []);
-    } catch {
-      setPriceData([]);
-      setNotice({ type: 'error', message: 'Não foi possível carregar o histórico do produto.' });
-    } finally {
-      setLoadingHistory(false);
-    }
-  }
-
   async function loadProductUrls(productId) {
     setLoadingUrls(true);
     try {
@@ -71,7 +56,7 @@ export function useProducts(setNotice) {
 
   async function refreshSelectedProductData(productId = selectedProduct) {
     if (!productId) return;
-    await Promise.all([loadPriceHistory(productId), loadProductUrls(productId), loadProducts(productId)]);
+    await Promise.all([loadProductUrls(productId), loadProducts(productId)]);
   }
 
   async function submitUrlsToProduct(productId, urls) {
@@ -224,8 +209,7 @@ export function useProducts(setNotice) {
   }, []);
 
   useEffect(() => {
-    if (!selectedProduct) { setPriceData([]); setProductUrls([]); setProductEdit(EMPTY_PRODUCT_EDIT); return; }
-    loadPriceHistory(selectedProduct);
+    if (!selectedProduct) { setProductUrls([]); setProductEdit(EMPTY_PRODUCT_EDIT); return; }
     loadProductUrls(selectedProduct);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedProduct]);
@@ -243,9 +227,9 @@ export function useProducts(setNotice) {
 
   return {
     products, productOptions, selectedProduct, setSelectedProduct,
-    selectedProductData, priceData, productUrls, productEdit,
+    selectedProductData, productUrls, productEdit,
     newLink, setNewLink, linkDrafts,
-    loadingProducts, loadingHistory, loadingUrls,
+    loadingProducts, loadingUrls,
     submittingProduct, savingProduct, submittingLink, savingLinkId,
     linksSummary,
     handleProductSubmit, handleProductUpdate,

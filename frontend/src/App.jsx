@@ -39,9 +39,9 @@ export default function App() {
 
   const {
     products, productOptions, selectedProduct, setSelectedProduct,
-    selectedProductData, priceData, productUrls, productEdit,
+    selectedProductData, productUrls, productEdit,
     newLink, setNewLink, linkDrafts,
-    loadingProducts, loadingHistory, loadingUrls,
+    loadingProducts, loadingUrls,
     submittingProduct, savingProduct, submittingLink, savingLinkId,
     linksSummary,
     handleProductSubmit, handleProductUpdate,
@@ -55,9 +55,10 @@ export default function App() {
     overallStats,
     plotData,
     selectedProductLabel,
-    storeStats
+    storeStats,
+    loadingAnalytics,
+    refetchAnalytics
   } = useProductAnalytics({
-    priceData,
     timeRange,
     isDark,
     selectedProductData
@@ -122,8 +123,11 @@ export default function App() {
             <button
               type="button"
               className="secondary-button"
-              onClick={() => refreshSelectedProductData()}
-              disabled={!selectedProduct || loadingHistory || loadingUrls || loadingProducts}
+              onClick={() => {
+                refreshSelectedProductData();
+                refetchAnalytics();
+              }}
+              disabled={!selectedProduct || loadingUrls || loadingProducts || loadingAnalytics}
             >
               <RefreshCcw size={16} />
               Atualizar
@@ -226,7 +230,7 @@ export default function App() {
             filteredData={filteredData}
             plotData={plotData}
             isDark={isDark}
-            loadingHistory={loadingHistory}
+            loadingHistory={loadingAnalytics}
             selectedProductData={selectedProductData}
           />
 

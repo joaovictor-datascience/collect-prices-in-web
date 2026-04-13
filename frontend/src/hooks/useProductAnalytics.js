@@ -1,41 +1,50 @@
-import { useMemo } from 'react';
+import { useMemo, useState, useEffect } from 'react';
+import axios from 'axios';
 
-export function useProductAnalytics({ priceData, timeRange, isDark, selectedProductData }) {
-  const filteredData = useMemo(() => {
-    if (!priceData.length) {
-      return [];
+export function useProductAnalytics({ selectedProductData, timeRange, isDark }) {
+  const [analyticsData, setAnalyticsData] = useState({
+    filteredData: [],
+    overallStats: { current: null, min: null, max: null, avg: null },
+    storeStats: []
+  });
+  const [loadingAnalytics, setLoadingAnalytics] = useState(false);
+
+  const apiUrl = import.meta.env.VITE_API_URL || '';
+
+  useEffect(() => {
+    fetchAnalytics();
+  }, [selectedProductData?.id, timeRange, apiUrl]);
+
+  async function fetchAnalytics() {
+    if (!selectedProductData?.id) {
+      setAnalyticsData({
+        filteredData: [],
+        overallStats: { current: null, min: null, max: null, avg: null },
+        storeStats: []
+      });
+      return;
     }
-
-    if (timeRange === 'all') {
-      return priceData;
+    
+    setLoadingAnalytics(true);
+    try {
+      const response = await axios.get(`${apiUrl}/api/analytics/${selectedProductData.id}?days=${timeRange}`);
+      setAnalyticsData(response.data);
+    } catch (error) {
+      console.error('Failed to fetch analytics:', error);
+      setAnalyticsData({
+        filteredData: [],
+        overallStats: { current: null, min: null, max: null, avg: null },
+        storeStats: []
+      });
+    } finally {
+      setLoadingAnalytics(false);
     }
+  }
 
-    const now = new Date();
-    const days = Number.parseInt(timeRange, 10);
-
-    return priceData.filter((item) => {
-      const diff = Math.abs(now - new Date(item.scraped_at));
-      return Math.ceil(diff / (1000 * 60 * 60 * 24)) <= days;
-    });
-  }, [priceData, timeRange]);
-
-  const overallStats = useMemo(() => {
-    if (!filteredData.length) {
-      return { current: null, min: null, max: null, avg: null };
-    }
-
-    const prices = filteredData.map((entry) => Number.parseFloat(entry.price));
-
-    return {
-      current: prices[prices.length - 1],
-      min: Math.min(...prices),
-      max: Math.max(...prices),
-      avg: prices.reduce((sum, value) => sum + value, 0) / prices.length
-    };
-  }, [filteredData]);
+  const { filteredData, overallStats, storeStats } = analyticsData;
 
   const plotData = useMemo(() => {
-    if (!filteredData.length) {
+    if (!filteredData || !filteredData.length) {
       return [];
     }
 
@@ -64,37 +73,6 @@ export function useProductAnalytics({ priceData, timeRange, isDark, selectedProd
     });
   }, [filteredData, isDark]);
 
-  const storeStats = useMemo(() => {
-    if (!filteredData.length) {
-      return [];
-    }
-
-    const grouped = filteredData.reduce((accumulator, item) => {
-      const storeName = item.store_name || 'Loja';
-      accumulator[storeName] ??= [];
-      accumulator[storeName].push(item);
-      return accumulator;
-    }, {});
-
-    return Object.entries(grouped)
-      .map(([storeName, items]) => {
-        const prices = items.map((item) => Number.parseFloat(item.price));
-        const latest = items[items.length - 1];
-
-        return {
-          storeName,
-          min: Math.min(...prices),
-          max: Math.max(...prices),
-          avg: prices.reduce((sum, value) => sum + value, 0) / prices.length,
-          samples: items.length,
-          latestPrice: Number.parseFloat(latest.price),
-          latestUrl: latest.url,
-          latestScrapedAt: latest.scraped_at
-        };
-      })
-      .sort((first, second) => first.storeName.localeCompare(second.storeName, 'pt-BR'));
-  }, [filteredData]);
-
   const selectedProductLabel = selectedProductData
     ? selectedProductData.group_name
       ? `${selectedProductData.group_name} / ${selectedProductData.name}`
@@ -106,6 +84,8 @@ export function useProductAnalytics({ priceData, timeRange, isDark, selectedProd
     overallStats,
     plotData,
     selectedProductLabel,
-    storeStats
+    storeStats,
+    loadingAnalytics,
+    refetchAnalytics: fetchAnalytics
   };
 }

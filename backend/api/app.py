@@ -347,6 +347,89 @@ def get_price_history(product_id):
         return jsonify(history)
     except Exception as e:
         return jsonify({"error": str(e)}), 500
+    
+# ──────────────────────────────────────────────
+#  ANALYTICS (Replaces Frontend hooks computation)
+# ──────────────────────────────────────────────
+
+@app.route('/api/analytics/<int:product_id>', methods=['GET'])
+def get_product_analytics(product_id):
+    """Return the price history, overall stats, and store stats for a product."""
+    try:
+        days = request.args.get('days', '30')
+        
+        with get_db_connection() as conn:
+            with conn.cursor() as cur:
+                # Base query
+                date_filter = ""
+                params = [product_id]
+                
+                if days != 'all':
+                    try:
+                        days_int = int(days)
+                        # We use PostgreSQL intervals for precision
+                        date_filter = "AND ph.scraped_at >= NOW() - INTERVAL '%s days'"
+                        params.append(days_int)
+                    except ValueError:
+                        pass
+                
+                query = f"""
+                    SELECT ph.id, ph.price, ph.url, ph.scraped_at, s.name as store_name
+                    FROM price_history ph
+                    JOIN stores s ON ph.store_id = s.id
+                    WHERE ph.product_id = %s {date_filter}
+                    ORDER BY ph.scraped_at ASC
+                """
+                
+                cur.execute(query, tuple(params))
+                history = cur.fetchall()
+                
+                if not history:
+                    return jsonify({
+                        "filteredData": [],
+                        "overallStats": {"current": None, "min": None, "max": None, "avg": None},
+                        "storeStats": []
+                    })
+                
+                prices = [float(h['price']) for h in history]
+                overall_stats = {
+                    "current": prices[-1],
+                    "min": min(prices),
+                    "max": max(prices),
+                    "avg": sum(prices) / len(prices)
+                }
+                
+                store_map = {}
+                for h in history:
+                    store = h['store_name'] or 'Loja'
+                    if store not in store_map:
+                        store_map[store] = []
+                    store_map[store].append(h)
+                    
+                store_stats = []
+                for store, items in store_map.items():
+                    store_prices = [float(i['price']) for i in items]
+                    latest = items[-1]
+                    store_stats.append({
+                        "storeName": store,
+                        "min": min(store_prices),
+                        "max": max(store_prices),
+                        "avg": sum(store_prices) / len(store_prices),
+                        "samples": len(items),
+                        "latestPrice": float(latest['price']),
+                        "latestUrl": latest['url'],
+                        "latestScrapedAt": latest['scraped_at']
+                    })
+                    
+                store_stats.sort(key=lambda x: x["storeName"])
+                
+                return jsonify({
+                    "filteredData": history,
+                    "overallStats": overall_stats,
+                    "storeStats": store_stats
+                })
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
 
 
 # ──────────────────────────────────────────────
