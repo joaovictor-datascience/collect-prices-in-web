@@ -10,8 +10,12 @@ export function ProductChart({
   plotData,
   isDark,
   loadingHistory,
-  selectedProductData
+  selectedProductData,
+  timeRange
 }) {
+  const isLargeRange = timeRange === '90' || timeRange === 'all';
+  const tickFormat = isLargeRange ? '%m/%Y' : '%d/%m';
+
   return (
     <section className="panel">
       <div className="panel-header">
@@ -45,7 +49,7 @@ export function ProductChart({
             xaxis: {
               title: '',
               showgrid: false,
-              tickformat: '%d/%m/%Y',
+              tickformat: tickFormat,
               color: isDark ? '#cbd5e1' : '#4b5563'
             },
             yaxis: {

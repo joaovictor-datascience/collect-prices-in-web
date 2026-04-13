@@ -266,6 +266,7 @@ export default function App() {
             isDark={isDark}
             loadingHistory={loadingAnalytics}
             selectedProductData={selectedProductData}
+            timeRange={timeRange}
           />
 
           <section className="panel">

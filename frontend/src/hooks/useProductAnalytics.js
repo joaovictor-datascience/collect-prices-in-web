@@ -57,7 +57,16 @@ export function useProductAnalytics({ selectedProductData, timeRange, storeFilte
       const storeData = filteredData.filter((item) => item.store_name === store);
 
       return {
-        x: storeData.map((item) => item.scraped_at),
+        x: storeData.map((item) => {
+          const d = new Date(item.scraped_at);
+          const YYYY = d.getFullYear();
+          const MM = String(d.getMonth() + 1).padStart(2, '0');
+          const DD = String(d.getDate()).padStart(2, '0');
+          const HH = String(d.getHours()).padStart(2, '0');
+          const mm = String(d.getMinutes()).padStart(2, '0');
+          const ss = String(d.getSeconds()).padStart(2, '0');
+          return `${YYYY}-${MM}-${DD} ${HH}:${mm}:${ss}`;
+        }),
         y: storeData.map((item) => Number.parseFloat(item.price)),
         type: 'scatter',
         mode: 'lines+markers',
