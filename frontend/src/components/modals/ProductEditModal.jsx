@@ -1,6 +1,8 @@
-import { Package, PencilLine, X } from 'lucide-react';
+import { useEffect, useState } from 'react';
+import { Package, PencilLine, X, Trash2 } from 'lucide-react';
 
 import { EmptyPanel } from '../EmptyPanel';
+import { ConfirmDialog } from './ConfirmDialog';
 import { ModalPortal } from './ModalPortal';
 
 export function ProductEditModal({
@@ -8,14 +10,34 @@ export function ProductEditModal({
   productEdit,
   onFieldChange,
   onSubmit,
+  onDelete,
   saving,
+  deletingProduct,
   open,
   onOpenChange
 }) {
+  const [confirmOpen, setConfirmOpen] = useState(false);
+
+  useEffect(() => {
+    if (!open) {
+      setConfirmOpen(false);
+    }
+  }, [open]);
+
   async function handleSubmit(event) {
     event.preventDefault();
     const success = await onSubmit();
     if (success) {
+      onOpenChange(false);
+    }
+  }
+
+  async function handleDelete() {
+    if (!selectedProductData) return;
+
+    const success = await onDelete();
+    if (success) {
+      setConfirmOpen(false);
       onOpenChange(false);
     }
   }
@@ -39,7 +61,7 @@ export function ProductEditModal({
             <div className="modal-box" onClick={(event) => event.stopPropagation()}>
               <div className="modal-header">
                 <div>
-                  <p className="eyebrow">Edicao</p>
+                  <p className="eyebrow">Edição</p>
                   <h2>Produto selecionado</h2>
                 </div>
                 <div className="modal-header-actions">
@@ -81,14 +103,31 @@ export function ProductEditModal({
                     />
                   </label>
 
-                  <div className="modal-footer">
-                    <button type="button" className="secondary-button" onClick={() => onOpenChange(false)}>
-                      Cancelar
+                  <div className="modal-footer modal-footer--split">
+                    <button
+                      type="button"
+                      className="secondary-button button-delete product-edit-delete"
+                      disabled={deletingProduct || saving}
+                      onClick={() => setConfirmOpen(true)}
+                    >
+                      <Trash2 size={16} />
+                      {deletingProduct ? 'Excluindo...' : 'Excluir'}
                     </button>
-                    <button type="submit" className="secondary-button" disabled={saving}>
-                      <PencilLine size={16} />
-                      {saving ? 'Salvando...' : 'Salvar produto'}
-                    </button>
+
+                    <div className="modal-footer-actions">
+                      <button type="button" className="secondary-button" onClick={() => onOpenChange(false)}>
+                        Cancelar
+                      </button>
+
+                      <button
+                        type="submit"
+                        className="secondary-button product-edit-save"
+                        disabled={saving || deletingProduct}
+                      >
+                        <PencilLine size={16} />
+                        {saving ? 'Salvando...' : 'Salvar produto'}
+                      </button>
+                    </div>
                   </div>
                 </form>
               ) : (
@@ -102,6 +141,16 @@ export function ProductEditModal({
           </div>
         </ModalPortal>
       )}
+
+      <ConfirmDialog
+        open={confirmOpen}
+        title="Excluir produto?"
+        description={selectedProductData ? `"${selectedProductData.name}" será removido permanentemente.` : ''}
+        confirmLabel={deletingProduct ? 'Excluindo...' : 'Excluir'}
+        onConfirm={handleDelete}
+        onCancel={() => setConfirmOpen(false)}
+        busy={deletingProduct}
+      />
     </>
   );
 }

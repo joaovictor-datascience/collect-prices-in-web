@@ -11,6 +11,7 @@
 .theme-toggle,
 .primary-button,
 .secondary-button,
+.button-delete,
 .ghost-button,
 .inline-link {
   display: inline-flex;
@@ -28,6 +29,7 @@
 .theme-toggle:hover,
 .primary-button:hover,
 .secondary-button:hover,
+.button-delete:hover,
 .ghost-button:hover,
 .inline-link:hover {
   transform: translateY(-1px);
@@ -35,10 +37,22 @@
 
 .theme-toggle,
 .secondary-button,
+.button-delete,
 .ghost-button {
   border: 1px solid var(--border);
   background: var(--surface);
   color: var(--text);
+}
+
+.button-delete {
+  border-color: rgba(217, 72, 95, 0.36);
+  background: rgba(217, 72, 95, 0.1);
+  color: var(--danger);
+}
+
+.button-delete:hover {
+  border-color: var(--danger);
+  background: rgba(217, 72, 95, 0.16);
 }
 
 .theme-toggle {

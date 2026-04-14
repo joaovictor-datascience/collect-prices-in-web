@@ -43,10 +43,10 @@ export default function App() {
     selectedProductData, productUrls, productEdit,
     newLink, setNewLink, linkDrafts,
     loadingProducts, loadingUrls,
-    submittingProduct, savingProduct, submittingLink, savingLinkId,
+    submittingProduct, savingProduct, deletingProduct, submittingLink, savingLinkId, deletingLinkId,
     linksSummary,
-    handleProductSubmit, handleProductUpdate,
-    handleAddLink, handleSaveLink,
+    handleProductSubmit, handleProductDelete, handleProductUpdate,
+    handleAddLink, handleSaveLink, handleDeleteLink,
     updateLinkDraft, updateProductEditField,
     refreshSelectedProductData
   } = useProducts(setNotice);
@@ -107,6 +107,8 @@ export default function App() {
               productEdit={productEdit}
               onFieldChange={updateProductEditField}
               onSubmit={handleProductUpdate}
+              onDelete={handleProductDelete}
+              deletingProduct={deletingProduct}
               saving={savingProduct}
               open={isProductEditOpen}
               onOpenChange={setIsProductEditOpen}
@@ -121,8 +123,10 @@ export default function App() {
               onLinkDraftChange={updateLinkDraft}
               onAddLink={handleAddLink}
               onSaveLink={handleSaveLink}
+              onDeleteLink={handleDeleteLink}
               submittingLink={submittingLink}
               savingLinkId={savingLinkId}
+              deletingLinkId={deletingLinkId}
               open={isProductLinksOpen}
               onOpenChange={setIsProductLinksOpen}
             />
@@ -272,7 +276,7 @@ export default function App() {
           <section className="panel">
             <div className="panel-header">
               <div>
-                <p className="eyebrow">Cards abaixo do gráfico</p>
+                <p className="eyebrow">Comparação</p>
                 <h2>Resumo por loja</h2>
               </div>
             </div>

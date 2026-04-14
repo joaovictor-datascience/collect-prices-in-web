@@ -1,7 +1,9 @@
-import { ExternalLink, Link2, RefreshCcw, Save, X } from 'lucide-react';
+import { useEffect, useState } from 'react';
+import { ExternalLink, Link2, RefreshCcw, Save, Trash2, X } from 'lucide-react';
 
 import { EmptyPanel } from '../EmptyPanel';
 import { inferStoreNameFromUrl } from '../../utils/store';
+import { ConfirmDialog } from './ConfirmDialog';
 import { ModalPortal } from './ModalPortal';
 
 export function ProductLinksModal({
@@ -14,11 +16,21 @@ export function ProductLinksModal({
   onLinkDraftChange,
   onAddLink,
   onSaveLink,
+  onDeleteLink,
   submittingLink,
   savingLinkId,
+  deletingLinkId,
   open,
   onOpenChange
 }) {
+  const [linkToDelete, setLinkToDelete] = useState(null);
+
+  useEffect(() => {
+    if (!open) {
+      setLinkToDelete(null);
+    }
+  }, [open]);
+
   const linksSummary = {
     active: productUrls.filter((link) => link.active).length,
     inactive: productUrls.filter((link) => !link.active).length
@@ -27,6 +39,11 @@ export function ProductLinksModal({
   function handleAddLink(event) {
     event.preventDefault();
     onAddLink();
+  }
+
+  async function handleDeleteLink(link) {
+    await onDeleteLink(link.id);
+    setLinkToDelete(null);
   }
 
   return (
@@ -104,6 +121,9 @@ export function ProductLinksModal({
                       {productUrls.map((link) => {
                         const draft = linkDrafts[link.id] ?? { url: link.url, active: link.active };
                         const isDirty = draft.url !== link.url || draft.active !== link.active;
+                        const isSaving = savingLinkId === link.id;
+                        const isDeleting = deletingLinkId === link.id;
+                        const isBusy = isSaving || isDeleting;
 
                         return (
                           <article key={link.id} className="link-card">
@@ -138,12 +158,21 @@ export function ProductLinksModal({
                               </a>
                               <button
                                 type="button"
-                                className="secondary-button"
-                                disabled={!isDirty || savingLinkId === link.id}
+                                className="secondary-button button-delete link-action-delete"
+                                disabled={isBusy}
+                                onClick={() => setLinkToDelete(link)}
+                              >
+                                <Trash2 size={16} />
+                                {isDeleting ? 'Excluindo...' : 'Excluir link'}
+                              </button>
+                              <button
+                                type="button"
+                                className="secondary-button link-action-save"
+                                disabled={!isDirty || isBusy}
                                 onClick={() => onSaveLink(link.id)}
                               >
                                 <Save size={16} />
-                                {savingLinkId === link.id ? 'Salvando...' : 'Salvar link'}
+                                {isSaving ? 'Salvando...' : 'Salvar link'}
                               </button>
                             </div>
                           </article>
@@ -169,6 +198,16 @@ export function ProductLinksModal({
           </div>
         </ModalPortal>
       )}
+
+      <ConfirmDialog
+        open={Boolean(linkToDelete)}
+        title="Excluir link?"
+        description={linkToDelete ? `O link será removido permanentemente.` : ''}
+        confirmLabel={deletingLinkId === linkToDelete?.id ? 'Excluindo...' : 'Excluir'}
+        onConfirm={() => linkToDelete && handleDeleteLink(linkToDelete)}
+        onCancel={() => setLinkToDelete(null)}
+        busy={deletingLinkId === linkToDelete?.id}
+      />
     </>
   );
 }

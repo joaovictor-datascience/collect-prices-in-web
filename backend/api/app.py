@@ -179,7 +179,7 @@ def update_product(product_id):
 
 @app.route('/api/products/<int:product_id>', methods=['DELETE'])
 def delete_product(product_id):
-    """Soft delete a product and all URLs linked to it."""
+    """Hard delete a product and all related links/history."""
     try:
         with get_db_connection() as conn:
             with conn.cursor() as cur:
@@ -187,17 +187,12 @@ def delete_product(product_id):
                 if not cur.fetchone():
                     return jsonify({"error": "Product not found"}), 404
 
-                # Keep history intact while hiding the product from active flows.
-                cur.execute(
-                    "UPDATE products SET active = FALSE, updated_at = NOW() WHERE id = %s",
-                    (product_id,)
-                )
-                cur.execute(
-                    "UPDATE product_urls SET active = FALSE WHERE product_id = %s",
-                    (product_id,)
-                )
+                # Remove price history first so no orphan snapshots remain with NULL product_id.
+                cur.execute("DELETE FROM price_history WHERE product_id = %s", (product_id,))
+                # Related URLs are removed automatically (ON DELETE CASCADE).
+                cur.execute("DELETE FROM products WHERE id = %s", (product_id,))
 
-        return jsonify({"message": "Product deactivated successfully"}), 200
+        return jsonify({"message": "Product removed successfully"}), 200
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 

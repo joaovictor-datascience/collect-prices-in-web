@@ -16,8 +16,10 @@ export function useProducts(setNotice) {
   const [loadingUrls, setLoadingUrls] = useState(false);
   const [submittingProduct, setSubmittingProduct] = useState(false);
   const [savingProduct, setSavingProduct] = useState(false);
+  const [deletingProduct, setDeletingProduct] = useState(false);
   const [submittingLink, setSubmittingLink] = useState(false);
   const [savingLinkId, setSavingLinkId] = useState(null);
+  const [deletingLinkId, setDeletingLinkId] = useState(null);
 
   /* ── loaders ──────────────────────────────────────────────────────────── */
   async function loadProducts(preferredProductId) {
@@ -116,6 +118,24 @@ export function useProducts(setNotice) {
     }
   }
 
+  async function handleProductDelete() {
+    if (!selectedProductData) return false;
+    setDeletingProduct(true);
+    try {
+      await axios.delete(`${apiUrl}/api/products/${selectedProductData.id}`);
+      setProductUrls([]);
+      await loadProducts();
+      setNotice({ type: 'success', message: 'Produto excluído permanentemente.' });
+      return true;
+    } catch (error) {
+      const msg = error.response?.data?.error;
+      setNotice({ type: 'error', message: msg || 'Não foi possível excluir esse produto.' });
+      return false;
+    } finally {
+      setDeletingProduct(false);
+    }
+  }
+
   async function handleProductUpdate() {
     if (!selectedProductData) return false;
     const payload = { name: productEdit.name.trim(), group_name: productEdit.group_name.trim() || null };
@@ -143,9 +163,9 @@ export function useProducts(setNotice) {
     }
     setSubmittingLink(true);
     try {
-      await axios.post(`${apiUrl}/api/products/${selectedProductData.id}/urls`, { url: trimmed });
+      const response = await axios.post(`${apiUrl}/api/products/${selectedProductData.id}/urls`, { url: trimmed });
       setNewLink('');
-      await refreshSelectedProductData(selectedProductData.id);
+      setProductUrls((current) => [...current, response.data]);
       setNotice({ type: 'success', message: 'Novo link adicionado ao produto.' });
     } catch (error) {
       const msg = error.response?.data?.error;
@@ -163,14 +183,41 @@ export function useProducts(setNotice) {
     }
     setSavingLinkId(linkId);
     try {
-      await axios.put(`${apiUrl}/api/urls/${linkId}`, { url: draft.url.trim(), active: draft.active });
-      await refreshSelectedProductData(selectedProduct);
+      const response = await axios.put(`${apiUrl}/api/urls/${linkId}`, { url: draft.url.trim(), active: draft.active });
+      setProductUrls((current) =>
+        current.map((link) => (link.id === linkId ? response.data : link))
+      );
+      setLinkDrafts((current) => ({
+        ...current,
+        [linkId]: { url: response.data.url, active: response.data.active }
+      }));
       setNotice({ type: 'success', message: 'Link atualizado com sucesso.' });
     } catch (error) {
       const msg = error.response?.data?.error;
       setNotice({ type: 'error', message: msg || 'Não foi possível atualizar esse link.' });
     } finally {
       setSavingLinkId(null);
+    }
+  }
+
+  async function handleDeleteLink(linkId) {
+    setDeletingLinkId(linkId);
+    try {
+      await axios.delete(`${apiUrl}/api/urls/${linkId}`);
+      setProductUrls((current) => current.filter((link) => link.id !== linkId));
+      setLinkDrafts((current) => {
+        const next = { ...current };
+        delete next[linkId];
+        return next;
+      });
+      setNotice({ type: 'success', message: 'Link excluído com sucesso.' });
+      return true;
+    } catch (error) {
+      const msg = error.response?.data?.error;
+      setNotice({ type: 'error', message: msg || 'Não foi possível excluir esse link.' });
+      return false;
+    } finally {
+      setDeletingLinkId(null);
     }
   }
 
@@ -230,10 +277,10 @@ export function useProducts(setNotice) {
     selectedProductData, productUrls, productEdit,
     newLink, setNewLink, linkDrafts,
     loadingProducts, loadingUrls,
-    submittingProduct, savingProduct, submittingLink, savingLinkId,
+    submittingProduct, savingProduct, deletingProduct, submittingLink, savingLinkId, deletingLinkId,
     linksSummary,
-    handleProductSubmit, handleProductUpdate,
-    handleAddLink, handleSaveLink,
+    handleProductSubmit, handleProductDelete, handleProductUpdate,
+    handleAddLink, handleSaveLink, handleDeleteLink,
     updateLinkDraft, updateProductEditField,
     refreshSelectedProductData
   };
