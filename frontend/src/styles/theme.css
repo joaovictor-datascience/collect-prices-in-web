@@ -1,0 +1,83 @@
+:root {
+  color-scheme: light;
+  --font-sans: "Space Grotesk", "Avenir Next", "Segoe UI", sans-serif;
+
+  /* bg quente/neutro — sem o azul frio */
+  --bg: #F8F6F1;
+  --bg-accent:
+    radial-gradient(circle at top left,  rgba(196, 126, 26, 0.09),  transparent 32%),
+    radial-gradient(circle at top right, rgba(74,  111, 165, 0.09), transparent 28%),
+    linear-gradient(180deg, #FFFCF8 0%, #EDE9E1 100%);
+
+  --surface:        rgba(255, 255, 255, 0.90);
+  --surface-strong: #FFFFFF;
+  --surface-muted:  #f0f2f7fa;
+
+  --border:        rgba(60, 45, 25, 0.09);
+  --border-strong: rgba(74, 111, 165, 0.22);
+
+  --text:       #1A1612;
+  --text-soft:  #3D3527;
+  --text-faint: #6B5D48;
+
+  /* azul mais suave — steel-blue em vez de elétrico */
+  --primary:        #3675d3;
+  --primary-strong: #2D4E7A;
+
+  --success: #2D8A5E;
+  --danger:  #C94B5C;
+  --warning: #C47E1A;
+
+  --shadow: 0 18px 45px rgba(30, 20, 10, 0.07);
+}
+
+:root[data-theme="dark"] {
+  color-scheme: dark;
+
+  /* slate-azulado médio — longe do preto abismo */
+  --bg: #1C2030;
+  --bg-accent:
+    radial-gradient(circle at top left,  rgba(85, 132, 200, 0.13), transparent 32%),
+    radial-gradient(circle at top right, rgba(245, 184, 76, 0.10), transparent 28%),
+    linear-gradient(180deg, #222840 0%, #141925 100%);
+
+  --surface:        rgba(37, 44, 64, 0.88);
+  --surface-strong: #252C40;
+  --surface-muted:  #1E2538;
+
+  --border:        rgba(180, 195, 220, 0.12);
+  --border-strong: rgba(85, 132, 200, 0.28);
+
+  --text:       #EAE8E4;
+  --text-soft:  #B8C2D8;
+  --text-faint: #7E8FAA;
+
+  --primary:        #3185fa;
+  --primary-strong: #04449c;
+
+  --success: #3DC48A;
+  --danger:  #EF7083;
+  --warning: #F5B84C;
+
+  --shadow: 0 18px 45px rgba(5, 8, 20, 0.40);
+}
+
+* {
+  box-sizing: border-box;
+}
+html, body, #root {
+  min-height: 100%;
+}
+
+body {
+  margin: 0;
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  color: var(--text);
+}
+button, input, select, textarea {
+  font-size: 16px;
+}
+button { cursor: pointer; }
+a { color: inherit; }
