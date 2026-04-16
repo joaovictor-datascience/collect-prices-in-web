@@ -8,6 +8,7 @@ RUN apt-get update && apt-get install -y \
 RUN pip install --no-cache-dir -r requirements.txt
 COPY . .
 ENV PYTHONPATH=/app
-RUN adduser --disabled-password --no-create-home appuser
+ENV HOME=/home/appuser
+RUN adduser --disabled-password --gecos "" appuser
 USER appuser
-CMD ["python", "api/main.py"]
+CMD ["python", "main.py"]

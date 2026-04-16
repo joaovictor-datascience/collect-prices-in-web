@@ -120,6 +120,8 @@ def update_product(product_id):
                     values.append(normalize_optional_text(data.get('group_name')))
 
                 if 'active' in data:
+                    if not isinstance(data['active'], bool):
+                        return jsonify({"error": "active must be true or false"}), 400
                     fields.append("active = %s")
                     values.append(data['active'])
 

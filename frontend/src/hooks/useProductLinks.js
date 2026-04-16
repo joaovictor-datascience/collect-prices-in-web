@@ -1,8 +1,9 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import axios from 'axios';
 
+import { API_URL } from '../utils/api';
+
 export function useProductLinks({ selectedProduct, setNotice }) {
-  const apiUrl = import.meta.env.VITE_API_URL || '';
   const [productUrls, setProductUrls] = useState([]);
   const [newLink, setNewLink] = useState('');
   const [linkDrafts, setLinkDrafts] = useState({});
@@ -10,6 +11,7 @@ export function useProductLinks({ selectedProduct, setNotice }) {
   const [submittingLink, setSubmittingLink] = useState(false);
   const [savingLinkId, setSavingLinkId] = useState(null);
   const [deletingLinkId, setDeletingLinkId] = useState(null);
+  const skipNextAutoFetchRef = useRef(false);
 
   async function loadProductUrls(productId = selectedProduct) {
     if (!productId) {
@@ -20,7 +22,7 @@ export function useProductLinks({ selectedProduct, setNotice }) {
 
     setLoadingUrls(true);
     try {
-      const response = await axios.get(`${apiUrl}/api/products/${productId}/urls`);
+      const response = await axios.get(`${API_URL}/api/products/${productId}/urls`);
       setProductUrls(Array.isArray(response.data) ? response.data : []);
     } catch {
       setProductUrls([]);
@@ -43,7 +45,7 @@ export function useProductLinks({ selectedProduct, setNotice }) {
 
     setSubmittingLink(true);
     try {
-      const response = await axios.post(`${apiUrl}/api/products/${selectedProduct}/urls`, {
+      const response = await axios.post(`${API_URL}/api/products/${selectedProduct}/urls`, {
         url: trimmedLink
       });
       setNewLink('');
@@ -66,7 +68,7 @@ export function useProductLinks({ selectedProduct, setNotice }) {
 
     setSavingLinkId(linkId);
     try {
-      const response = await axios.put(`${apiUrl}/api/urls/${linkId}`, {
+      const response = await axios.put(`${API_URL}/api/urls/${linkId}`, {
         url: draft.url.trim(),
         active: draft.active
       });
@@ -89,7 +91,7 @@ export function useProductLinks({ selectedProduct, setNotice }) {
   async function handleDeleteLink(linkId) {
     setDeletingLinkId(linkId);
     try {
-      await axios.delete(`${apiUrl}/api/urls/${linkId}`);
+      await axios.delete(`${API_URL}/api/urls/${linkId}`);
       setProductUrls((current) => current.filter((link) => link.id !== linkId));
       setLinkDrafts((current) => {
         const nextDrafts = { ...current };
@@ -130,9 +132,13 @@ export function useProductLinks({ selectedProduct, setNotice }) {
       return;
     }
 
+    if (skipNextAutoFetchRef.current) {
+      skipNextAutoFetchRef.current = false;
+      return;
+    }
+
     loadProductUrls(selectedProduct);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedProduct]);
+  }, [selectedProduct]); // loadProductUrls is omitted – the explicit argument makes the dep on selectedProduct sufficient
 
   useEffect(() => {
     const drafts = {};
@@ -156,6 +162,7 @@ export function useProductLinks({ selectedProduct, setNotice }) {
     handleAddLink,
     handleSaveLink,
     handleDeleteLink,
-    updateLinkDraft
+    updateLinkDraft,
+    skipNextAutoFetchRef
   };
 }

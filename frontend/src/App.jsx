@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { RefreshCcw } from 'lucide-react';
+import { Play, RefreshCcw, ScrollText } from 'lucide-react';
 
 import { NoticeBanner } from './components/NoticeBanner';
 import { ProductChart } from './components/ProductChart';
@@ -7,10 +7,13 @@ import { ThemeToggle } from './components/ThemeToggle';
 import { ProductEditModal } from './components/modals/ProductEditModal';
 import { ProductFormModal } from './components/modals/ProductFormModal';
 import { ProductLinksModal } from './components/modals/ProductLinksModal';
+import { ScraperPanel } from './components/modals/ScraperPanel';
+import { ScraperRunModal } from './components/modals/ScraperRunModal';
 import { useProductAnalytics } from './hooks/useProductAnalytics';
 import { useProductEdit } from './hooks/useProductEdit';
 import { useProductLinks } from './hooks/useProductLinks';
 import { useProductList } from './hooks/useProductList';
+import { useScraperJob } from './hooks/useScraperJob';
 import { useTheme } from './hooks/useTheme';
 import { HeroPanel } from './sections/HeroPanel';
 import { MetricsSection } from './sections/MetricsSection';
@@ -24,6 +27,8 @@ export default function App() {
   const [isProductFormOpen, setIsProductFormOpen] = useState(false);
   const [isProductEditOpen, setIsProductEditOpen] = useState(false);
   const [isProductLinksOpen, setIsProductLinksOpen] = useState(false);
+  const [isScraperPanelOpen, setIsScraperPanelOpen] = useState(false);
+  const [isScraperRunOpen, setIsScraperRunOpen] = useState(false);
 
   const {
     products,
@@ -53,7 +58,8 @@ export default function App() {
     handleAddLink,
     handleSaveLink,
     handleDeleteLink,
-    updateLinkDraft
+    updateLinkDraft,
+    skipNextAutoFetchRef
   } = useProductLinks({ selectedProduct, setNotice });
 
   const {
@@ -76,6 +82,25 @@ export default function App() {
     selectedProductData
   });
 
+  const {
+    job: scraperJob,
+    jobs: scraperJobs,
+    selectedJobId,
+    logs: scraperLogs,
+    loadingLatest: loadingScraperLatest,
+    loadingJob: loadingScraperJob,
+    loadingJobs: loadingScraperJobs,
+    startingJob,
+    activeJob,
+    activeJobId,
+    refreshSelectedJob,
+    selectJob,
+    startJob
+  } = useScraperJob({
+    open: isScraperPanelOpen || isScraperRunOpen,
+    setNotice
+  });
+
   useEffect(() => {
     setSelectedStore('all');
   }, [selectedProduct]);
@@ -93,7 +118,12 @@ export default function App() {
   }
 
   function handleProductSubmit(payload) {
-    return submitProduct(payload, { refreshSelectedProductData });
+    return submitProduct(payload, {
+      prepareNextAutoFetchSkip: () => {
+        skipNextAutoFetchRef.current = true;
+      },
+      refreshSelectedProductData
+    });
   }
 
   function handleProductUpdate() {
@@ -102,6 +132,15 @@ export default function App() {
 
   function handleProductDelete() {
     return deleteProduct(selectedProductData);
+  }
+
+  async function handleScraperStart(payload) {
+    const started = await startJob(payload);
+    if (started) {
+      setIsScraperRunOpen(false);
+      setIsScraperPanelOpen(true);
+    }
+    return started;
   }
 
   const heroActions = (
@@ -138,6 +177,7 @@ export default function App() {
         submittingLink={submittingLink}
         savingLinkId={savingLinkId}
         deletingLinkId={deletingLinkId}
+        linksSummary={linksSummary}
         open={isProductLinksOpen}
         onOpenChange={setIsProductLinksOpen}
       />
@@ -163,10 +203,52 @@ export default function App() {
             Cadastre produtos, gerencie links por loja e acompanhe o histórico com comparativos mais claros.
           </p>
         </div>
-        <ThemeToggle theme={theme} onToggle={toggleTheme} />
+        <div className="topbar-actions">
+          <button
+            type="button"
+            className="secondary-button"
+            onClick={() => setIsScraperPanelOpen(true)}
+          >
+            <ScrollText size={16} />
+            Logs scraper
+          </button>
+          <button
+            type="button"
+            className="secondary-button"
+            onClick={() => setIsScraperRunOpen(true)}
+          >
+            <Play size={16} />
+            Executar scraper
+          </button>
+          <ThemeToggle theme={theme} onToggle={toggleTheme} />
+        </div>
       </header>
 
       <NoticeBanner notice={notice} onDismiss={() => setNotice(null)} />
+
+      <ScraperRunModal
+        products={products}
+        activeJob={activeJob}
+        activeJobId={activeJobId}
+        startingJob={startingJob}
+        onStartJob={handleScraperStart}
+        open={isScraperRunOpen}
+        onOpenChange={setIsScraperRunOpen}
+      />
+
+      <ScraperPanel
+        job={scraperJob}
+        jobs={scraperJobs}
+        selectedJobId={selectedJobId}
+        logs={scraperLogs}
+        loadingLatest={loadingScraperLatest}
+        loadingJob={loadingScraperJob}
+        loadingJobs={loadingScraperJobs}
+        onRefresh={refreshSelectedJob}
+        onSelectJob={selectJob}
+        open={isScraperPanelOpen}
+        onOpenChange={setIsScraperPanelOpen}
+      />
 
       <HeroPanel
         actions={heroActions}

@@ -20,6 +20,7 @@ export function ProductLinksModal({
   submittingLink,
   savingLinkId,
   deletingLinkId,
+  linksSummary,
   open,
   onOpenChange
 }) {
@@ -30,11 +31,6 @@ export function ProductLinksModal({
       setLinkToDelete(null);
     }
   }, [open]);
-
-  const linksSummary = {
-    active: productUrls.filter((link) => link.active).length,
-    inactive: productUrls.filter((link) => !link.active).length
-  };
 
   function handleAddLink(event) {
     event.preventDefault();
@@ -68,132 +64,134 @@ export function ProductLinksModal({
         <ModalPortal>
           <div className="modal-overlay" onClick={() => onOpenChange(false)}>
             <div className="modal-box modal-box--wide" onClick={(event) => event.stopPropagation()}>
-              <div className="modal-header">
-                <div>
-                  <p className="eyebrow">Links</p>
-                  <h2>Gerenciar links por produto</h2>
-                </div>
-                <div className="modal-header-actions">
-                  <span className="pill">{productUrls.length} total</span>
-                  {linksSummary.inactive > 0 && (
-                    <span className="pill pill--danger">{linksSummary.inactive} inativo(s)</span>
-                  )}
-                  <button
-                    type="button"
-                    className="ghost-button"
-                    onClick={() => onOpenChange(false)}
-                    aria-label="Fechar"
-                  >
-                    <X size={18} />
-                  </button>
-                </div>
-              </div>
-
-              {selectedProductData ? (
-                <>
-                  <form className="inline-form" onSubmit={handleAddLink}>
-                    <div className="field field--grow">
-                      <span className="field-label">Novo link</span>
-                      <div className="field-input">
-                        <Link2 size={18} />
-                        <input
-                          type="url"
-                          value={newLink}
-                          onChange={(event) => onNewLinkChange(event.target.value)}
-                          placeholder="https://loja.com/produto"
-                        />
-                      </div>
-                    </div>
-                    <button type="submit" className="primary-button" disabled={submittingLink}>
-                      <Link2 size={16} />
-                      {submittingLink ? 'Adicionando...' : 'Adicionar'}
+              <div className="modal-scroll">
+                <div className="modal-header">
+                  <div>
+                    <p className="eyebrow">Links</p>
+                    <h2>Gerenciar links por produto</h2>
+                  </div>
+                  <div className="modal-header-actions">
+                    <span className="pill">{productUrls.length} total</span>
+                    {linksSummary.inactive > 0 && (
+                      <span className="pill pill--danger">{linksSummary.inactive} inativo(s)</span>
+                    )}
+                    <button
+                      type="button"
+                      className="ghost-button"
+                      onClick={() => onOpenChange(false)}
+                      aria-label="Fechar"
+                    >
+                      <X size={18} />
                     </button>
-                  </form>
+                  </div>
+                </div>
 
-                  {loadingUrls ? (
-                    <EmptyPanel
-                      icon={<RefreshCcw size={40} />}
-                      title="Carregando links"
-                      description="Buscando os links cadastrados para o produto selecionado."
-                    />
-                  ) : productUrls.length ? (
-                    <div className="links-list">
-                      {productUrls.map((link) => {
-                        const draft = linkDrafts[link.id] ?? { url: link.url, active: link.active };
-                        const isDirty = draft.url !== link.url || draft.active !== link.active;
-                        const isSaving = savingLinkId === link.id;
-                        const isDeleting = deletingLinkId === link.id;
-                        const isBusy = isSaving || isDeleting;
+                {selectedProductData ? (
+                  <>
+                    <form className="inline-form" onSubmit={handleAddLink}>
+                      <div className="field field--grow">
+                        <span className="field-label">Novo link</span>
+                        <div className="field-input">
+                          <Link2 size={18} />
+                          <input
+                            type="url"
+                            value={newLink}
+                            onChange={(event) => onNewLinkChange(event.target.value)}
+                            placeholder="https://loja.com/produto"
+                          />
+                        </div>
+                      </div>
+                      <button type="submit" className="primary-button" disabled={submittingLink}>
+                        <Link2 size={16} />
+                        {submittingLink ? 'Adicionando...' : 'Adicionar'}
+                      </button>
+                    </form>
 
-                        return (
-                          <article key={link.id} className="link-card">
-                            <div className="link-card-header">
-                              <div>
-                                <p className="eyebrow">{inferStoreNameFromUrl(link.url)}</p>
-                                <h3>{link.active ? 'Link ativo' : 'Link desativado'}</h3>
+                    {loadingUrls ? (
+                      <EmptyPanel
+                        icon={<RefreshCcw size={40} />}
+                        title="Carregando links"
+                        description="Buscando os links cadastrados para o produto selecionado."
+                      />
+                    ) : productUrls.length ? (
+                      <div className="links-list">
+                        {productUrls.map((link) => {
+                          const draft = linkDrafts[link.id] ?? { url: link.url, active: link.active };
+                          const isDirty = draft.url !== link.url || draft.active !== link.active;
+                          const isSaving = savingLinkId === link.id;
+                          const isDeleting = deletingLinkId === link.id;
+                          const isBusy = isSaving || isDeleting;
+
+                          return (
+                            <article key={link.id} className="link-card">
+                              <div className="link-card-header">
+                                <div>
+                                  <p className="eyebrow">{inferStoreNameFromUrl(link.url)}</p>
+                                  <h3>{link.active ? 'Link ativo' : 'Link desativado'}</h3>
+                                </div>
+                                <label className="toggle">
+                                  <input
+                                    type="checkbox"
+                                    checked={Boolean(draft.active)}
+                                    onChange={(event) => onLinkDraftChange(link.id, 'active', event.target.checked)}
+                                  />
+                                  <span>{draft.active ? 'Ativo' : 'Inativo'}</span>
+                                </label>
                               </div>
-                              <label className="toggle">
+
+                              <label className="field">
+                                <span className="field-label">URL</span>
                                 <input
-                                  type="checkbox"
-                                  checked={Boolean(draft.active)}
-                                  onChange={(event) => onLinkDraftChange(link.id, 'active', event.target.checked)}
+                                  type="url"
+                                  value={draft.url}
+                                  onChange={(event) => onLinkDraftChange(link.id, 'url', event.target.value)}
                                 />
-                                <span>{draft.active ? 'Ativo' : 'Inativo'}</span>
                               </label>
-                            </div>
 
-                            <label className="field">
-                              <span className="field-label">URL</span>
-                              <input
-                                type="url"
-                                value={draft.url}
-                                onChange={(event) => onLinkDraftChange(link.id, 'url', event.target.value)}
-                              />
-                            </label>
-
-                            <div className="link-card-actions">
-                              <a href={link.url} target="_blank" rel="noreferrer" className="inline-link">
-                                Abrir loja
-                                <ExternalLink size={16} />
-                              </a>
-                              <button
-                                type="button"
-                                className="secondary-button button-delete link-action-delete"
-                                disabled={isBusy}
-                                onClick={() => setLinkToDelete(link)}
-                              >
-                                <Trash2 size={16} />
-                                {isDeleting ? 'Excluindo...' : 'Excluir link'}
-                              </button>
-                              <button
-                                type="button"
-                                className="secondary-button link-action-save"
-                                disabled={!isDirty || isBusy}
-                                onClick={() => onSaveLink(link.id)}
-                              >
-                                <Save size={16} />
-                                {isSaving ? 'Salvando...' : 'Salvar link'}
-                              </button>
-                            </div>
-                          </article>
-                        );
-                      })}
-                    </div>
-                  ) : (
-                    <EmptyPanel
-                      icon={<Link2 size={40} />}
-                      title="Nenhum link cadastrado"
-                      description="Adicione um novo link para começar a monitorar esse produto."
-                    />
-                  )}
-                </>
-              ) : (
-                <EmptyPanel
-                  icon={<Link2 size={40} />}
-                  title="Selecione um produto"
-                  description="Os links aparecem aqui para edição, ativação e desativação."
-                />
-              )}
+                              <div className="link-card-actions">
+                                <a href={link.url} target="_blank" rel="noreferrer" className="inline-link">
+                                  Abrir loja
+                                  <ExternalLink size={16} />
+                                </a>
+                                <button
+                                  type="button"
+                                  className="secondary-button button-delete link-action-delete"
+                                  disabled={isBusy}
+                                  onClick={() => setLinkToDelete(link)}
+                                >
+                                  <Trash2 size={16} />
+                                  {isDeleting ? 'Excluindo...' : 'Excluir link'}
+                                </button>
+                                <button
+                                  type="button"
+                                  className="secondary-button link-action-save"
+                                  disabled={!isDirty || isBusy}
+                                  onClick={() => onSaveLink(link.id)}
+                                >
+                                  <Save size={16} />
+                                  {isSaving ? 'Salvando...' : 'Salvar link'}
+                                </button>
+                              </div>
+                            </article>
+                          );
+                        })}
+                      </div>
+                    ) : (
+                      <EmptyPanel
+                        icon={<Link2 size={40} />}
+                        title="Nenhum link cadastrado"
+                        description="Adicione um novo link para começar a monitorar esse produto."
+                      />
+                    )}
+                  </>
+                ) : (
+                  <EmptyPanel
+                    icon={<Link2 size={40} />}
+                    title="Selecione um produto"
+                    description="Os links aparecem aqui para edição, ativação e desativação."
+                  />
+                )}
+              </div>
             </div>
           </div>
         </ModalPortal>

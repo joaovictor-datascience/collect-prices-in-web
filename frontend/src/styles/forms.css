@@ -1,3 +1,88 @@
+:root {
+  --scrollbar-size: 12px;
+  --scrollbar-thumb-min-size: 44px;
+  --scrollbar-firefox-width: thin;
+}
+
+body {
+  scrollbar-width: var(--scrollbar-firefox-width);
+  scrollbar-color: var(--scrollbar-thumb) var(--scrollbar-track);
+}
+
+body::-webkit-scrollbar,
+.modal-scroll::-webkit-scrollbar,
+.links-list::-webkit-scrollbar,
+.scraper-product-list::-webkit-scrollbar,
+.scraper-job-list::-webkit-scrollbar,
+.scraper-log-group-list::-webkit-scrollbar,
+.scraper-log-list::-webkit-scrollbar,
+.scraper-log-item__details pre::-webkit-scrollbar {
+  width: var(--scrollbar-size);
+  height: var(--scrollbar-size);
+}
+
+body::-webkit-scrollbar-track,
+.modal-scroll::-webkit-scrollbar-track,
+.links-list::-webkit-scrollbar-track,
+.scraper-product-list::-webkit-scrollbar-track,
+.scraper-job-list::-webkit-scrollbar-track,
+.scraper-log-group-list::-webkit-scrollbar-track,
+.scraper-log-list::-webkit-scrollbar-track,
+.scraper-log-item__details pre::-webkit-scrollbar-track {
+  background: linear-gradient(180deg, transparent 0%, var(--scrollbar-track) 16%, var(--scrollbar-track) 84%, transparent 100%);
+  border-radius: 999px;
+}
+
+body::-webkit-scrollbar-thumb,
+.modal-scroll::-webkit-scrollbar-thumb,
+.links-list::-webkit-scrollbar-thumb,
+.scraper-product-list::-webkit-scrollbar-thumb,
+.scraper-job-list::-webkit-scrollbar-thumb,
+.scraper-log-group-list::-webkit-scrollbar-thumb,
+.scraper-log-list::-webkit-scrollbar-thumb,
+.scraper-log-item__details pre::-webkit-scrollbar-thumb {
+  min-height: var(--scrollbar-thumb-min-size);
+  border: 3px solid transparent;
+  border-radius: 999px;
+  background: linear-gradient(180deg, var(--scrollbar-thumb) 0%, color-mix(in srgb, var(--scrollbar-thumb) 80%, var(--primary-strong)) 100%);
+  background-clip: padding-box;
+}
+
+body::-webkit-scrollbar-thumb:hover,
+.modal-scroll::-webkit-scrollbar-thumb:hover,
+.links-list::-webkit-scrollbar-thumb:hover,
+.scraper-product-list::-webkit-scrollbar-thumb:hover,
+.scraper-job-list::-webkit-scrollbar-thumb:hover,
+.scraper-log-group-list::-webkit-scrollbar-thumb:hover,
+.scraper-log-list::-webkit-scrollbar-thumb:hover,
+.scraper-log-item__details pre::-webkit-scrollbar-thumb:hover {
+  background: linear-gradient(180deg, var(--scrollbar-thumb-hover) 0%, color-mix(in srgb, var(--scrollbar-thumb-hover) 80%, var(--primary-strong)) 100%);
+  background-clip: padding-box;
+}
+
+body::-webkit-scrollbar-thumb:active,
+.modal-scroll::-webkit-scrollbar-thumb:active,
+.links-list::-webkit-scrollbar-thumb:active,
+.scraper-product-list::-webkit-scrollbar-thumb:active,
+.scraper-job-list::-webkit-scrollbar-thumb:active,
+.scraper-log-group-list::-webkit-scrollbar-thumb:active,
+.scraper-log-list::-webkit-scrollbar-thumb:active,
+.scraper-log-item__details pre::-webkit-scrollbar-thumb:active {
+  background: linear-gradient(180deg, var(--scrollbar-thumb-active) 0%, color-mix(in srgb, var(--scrollbar-thumb-active) 80%, var(--primary-strong)) 100%);
+  background-clip: padding-box;
+}
+
+.modal-scroll,
+.links-list,
+.scraper-product-list,
+.scraper-job-list,
+.scraper-log-group-list,
+.scraper-log-list,
+.scraper-log-item__details pre {
+  scrollbar-width: var(--scrollbar-firefox-width);
+  scrollbar-color: var(--scrollbar-thumb) var(--scrollbar-track);
+}
+
 .field,
 .stack-form {
   display: grid;

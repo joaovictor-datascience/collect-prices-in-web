@@ -89,6 +89,8 @@ def update_url(url_id):
                     values.append(validated_url)
 
                 if 'active' in data:
+                    if not isinstance(data['active'], bool):
+                        return jsonify({"error": "active must be true or false"}), 400
                     fields.append("active = %s")
                     values.append(data['active'])
 

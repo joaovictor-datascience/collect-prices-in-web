@@ -5,7 +5,7 @@ import { Activity, RefreshCcw } from 'lucide-react';
 
 import { EmptyPanel } from './EmptyPanel';
 
-const plotlyFactory = createPlotlyComponent.default || createPlotlyComponent;
+const plotlyFactory = createPlotlyComponent.default;
 const Plot = plotlyFactory(Plotly);
 
 

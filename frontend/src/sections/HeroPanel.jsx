@@ -42,7 +42,7 @@ export function HeroPanel({
               {!productOptions.length && <option value="">Nenhum produto encontrado</option>}
               {productOptions.map((product) => (
                 <option key={product.id} value={product.id}>
-                  {product.group_name ? `${product.group_name} / ${product.name}` : product.name}
+                  {product.group_name ? `${product.name} / ${product.group_name} ` : product.name}
                   {product.active === false ? ' (inativo)' : ''}
                 </option>
               ))}

@@ -1,18 +1,20 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import axios from 'axios';
 
+import { API_URL } from '../utils/api';
+
 export function useProductList(setNotice) {
-  const apiUrl = import.meta.env.VITE_API_URL || '';
   const [products, setProducts] = useState([]);
   const [selectedProduct, setSelectedProduct] = useState('');
   const [loadingProducts, setLoadingProducts] = useState(false);
   const [submittingProduct, setSubmittingProduct] = useState(false);
   const [deletingProduct, setDeletingProduct] = useState(false);
+  const hasFetchedRef = useRef(false);
 
   async function loadProducts(preferredProductId) {
     setLoadingProducts(true);
     try {
-      const response = await axios.get(`${apiUrl}/api/products`);
+      const response = await axios.get(`${API_URL}/api/products`);
       if (Array.isArray(response.data)) {
         setProducts(response.data);
         setSelectedProduct((current) => {
@@ -41,7 +43,7 @@ export function useProductList(setNotice) {
 
     for (const url of urls) {
       try {
-        const response = await axios.post(`${apiUrl}/api/products/${productId}/urls`, { url });
+        const response = await axios.post(`${API_URL}/api/products/${productId}/urls`, { url });
         created.push(response.data);
       } catch (error) {
         if (error.response?.status === 409) {
@@ -57,7 +59,7 @@ export function useProductList(setNotice) {
 
   async function handleProductSubmit(
     { name, group_name, urls, existingMatch },
-    { refreshSelectedProductData } = {}
+    { prepareNextAutoFetchSkip, refreshSelectedProductData } = {}
   ) {
     if (!name) {
       setNotice({ type: 'error', message: 'Informe o nome do produto para continuar.' });
@@ -72,7 +74,11 @@ export function useProductList(setNotice) {
     try {
       if (existingMatch) {
         const result = await submitUrlsToProduct(existingMatch.id, urls);
-        setSelectedProduct(String(existingMatch.id));
+        const nextSelectedProduct = String(existingMatch.id);
+        if (String(selectedProduct) !== nextSelectedProduct) {
+          prepareNextAutoFetchSkip?.();
+        }
+        setSelectedProduct(nextSelectedProduct);
         if (refreshSelectedProductData) {
           await refreshSelectedProductData(existingMatch.id);
         } else {
@@ -103,12 +109,16 @@ export function useProductList(setNotice) {
         return false;
       }
 
-      const response = await axios.post(`${apiUrl}/api/products`, {
+      const response = await axios.post(`${API_URL}/api/products`, {
         name,
         group_name: group_name || null,
         urls
       });
-      setSelectedProduct(String(response.data.id));
+      const nextSelectedProduct = String(response.data.id);
+      if (String(selectedProduct) !== nextSelectedProduct) {
+        prepareNextAutoFetchSkip?.();
+      }
+      setSelectedProduct(nextSelectedProduct);
       if (refreshSelectedProductData) {
         await refreshSelectedProductData(response.data.id);
       } else {
@@ -132,7 +142,7 @@ export function useProductList(setNotice) {
 
     setDeletingProduct(true);
     try {
-      await axios.delete(`${apiUrl}/api/products/${selectedProductData.id}`);
+      await axios.delete(`${API_URL}/api/products/${selectedProductData.id}`);
       await loadProducts();
       setNotice({ type: 'success', message: 'Produto excluído permanentemente.' });
       return true;
@@ -160,9 +170,10 @@ export function useProductList(setNotice) {
   );
 
   useEffect(() => {
+    if (hasFetchedRef.current) return;
+    hasFetchedRef.current = true;
     loadProducts();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  });
 
   return {
     products,

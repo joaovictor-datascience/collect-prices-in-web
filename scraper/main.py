@@ -1,20 +1,12 @@
-from app.database import create_tables, get_products_to_scrape, save_results
+from app.database import create_tables, get_products_to_scrape, save_result
 from app.runner import run
 
 # Ensure the tables and compatibility migrations exist before scraping starts.
 create_tables()
 
-products = get_products_to_scrape()
+summary = run(
+    get_products_to_scrape,
+    save_result=save_result,
+)
 
-if not products:
-    print("No active products were found in the database.")
-    print("Use the API to register products and URLs.")
-    exit(0)
-
-print(f"Products found: {len(products)}")
-
-results = run(products)
-
-save_results(results)
-
-print(f"\nTotal saved: {len(results)} records")
+print(f"\nTotal saved: {summary.saved_results} records")

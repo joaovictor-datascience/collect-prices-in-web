@@ -1,11 +1,12 @@
 import { useEffect, useState } from 'react';
 import axios from 'axios';
 
+import { API_URL } from '../utils/api';
+
 const EMPTY_PRODUCT_EDIT = { name: '', group_name: '' };
 
 
 export function useProductEdit({ selectedProductData, setNotice }) {
-  const apiUrl = import.meta.env.VITE_API_URL || '';
   const [productEdit, setProductEdit] = useState(EMPTY_PRODUCT_EDIT);
   const [savingProduct, setSavingProduct] = useState(false);
 
@@ -25,7 +26,7 @@ export function useProductEdit({ selectedProductData, setNotice }) {
 
     setSavingProduct(true);
     try {
-      await axios.put(`${apiUrl}/api/products/${selectedProductData.id}`, payload);
+      await axios.put(`${API_URL}/api/products/${selectedProductData.id}`, payload);
       await loadProducts?.(selectedProductData.id);
       setNotice({ type: 'success', message: 'Dados do produto atualizados.' });
       return true;

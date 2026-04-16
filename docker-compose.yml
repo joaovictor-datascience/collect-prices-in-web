@@ -9,6 +9,7 @@ services:
       - "5432:5432"
 
   scraper:
+    image: collect-prices-in-web-scraper
     build:
       context: .
       dockerfile: scraper/Dockerfile
@@ -18,15 +19,32 @@ services:
       - db
     volumes:
       - ./scraper:/app
+      - ./shared:/app/shared
     command: python main.py
     profiles:
       - manual
+
+  scraper-worker:
+    container_name: scraper-worker
+    image: collect-prices-in-web-scraper
+    build:
+      context: .
+      dockerfile: scraper/Dockerfile
+    restart: unless-stopped
+    env_file: .env
+    depends_on:
+      - db
+    volumes:
+      - ./scraper:/app
+      - ./shared:/app/shared
+    command: python worker.py
 
   scheduler:
     image: mcuadros/ofelia:latest
     restart: unless-stopped
     depends_on:
       - db
+      - scraper-worker
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock:ro
       - ./ofelia.ini:/etc/ofelia/config.ini
@@ -43,6 +61,7 @@ services:
       - db
     volumes:
       - ./backend:/app
+      - ./shared:/app/shared
 
   frontend:
     build:

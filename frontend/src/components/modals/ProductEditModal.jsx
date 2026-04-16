@@ -59,84 +59,86 @@ export function ProductEditModal({
         <ModalPortal>
           <div className="modal-overlay" onClick={() => onOpenChange(false)}>
             <div className="modal-box" onClick={(event) => event.stopPropagation()}>
-              <div className="modal-header">
-                <div>
-                  <p className="eyebrow">Edição</p>
-                  <h2>Produto selecionado</h2>
-                </div>
-                <div className="modal-header-actions">
-                  {selectedProductData && (
-                    <span className={`pill ${selectedProductData.active === false ? 'pill--danger' : ''}`}>
-                      {selectedProductData.active === false ? 'Inativo' : 'Ativo'}
-                    </span>
-                  )}
-                  <button
-                    type="button"
-                    className="ghost-button"
-                    onClick={() => onOpenChange(false)}
-                    aria-label="Fechar"
-                  >
-                    <X size={18} />
-                  </button>
-                </div>
-              </div>
-
-              {selectedProductData ? (
-                <form className="stack-form" onSubmit={handleSubmit}>
-                  <label className="field">
-                    <span className="field-label">Nome</span>
-                    <input
-                      type="text"
-                      value={productEdit.name}
-                      onChange={(event) => onFieldChange('name', event.target.value)}
-                      autoFocus
-                    />
-                  </label>
-
-                  <label className="field">
-                    <span className="field-label">Grupo</span>
-                    <input
-                      type="text"
-                      value={productEdit.group_name}
-                      onChange={(event) => onFieldChange('group_name', event.target.value)}
-                      placeholder="Sem grupo"
-                    />
-                  </label>
-
-                  <div className="modal-footer modal-footer--split">
+              <div className="modal-scroll">
+                <div className="modal-header">
+                  <div>
+                    <p className="eyebrow">Edição</p>
+                    <h2>Produto selecionado</h2>
+                  </div>
+                  <div className="modal-header-actions">
+                    {selectedProductData && (
+                      <span className={`pill ${selectedProductData.active === false ? 'pill--danger' : ''}`}>
+                        {selectedProductData.active === false ? 'Inativo' : 'Ativo'}
+                      </span>
+                    )}
                     <button
                       type="button"
-                      className="secondary-button button-delete product-edit-delete"
-                      disabled={deletingProduct || saving}
-                      onClick={() => setConfirmOpen(true)}
+                      className="ghost-button"
+                      onClick={() => onOpenChange(false)}
+                      aria-label="Fechar"
                     >
-                      <Trash2 size={16} />
-                      {deletingProduct ? 'Excluindo...' : 'Excluir'}
+                      <X size={18} />
                     </button>
-
-                    <div className="modal-footer-actions">
-                      <button type="button" className="secondary-button" onClick={() => onOpenChange(false)}>
-                        Cancelar
-                      </button>
-
-                      <button
-                        type="submit"
-                        className="secondary-button product-edit-save"
-                        disabled={saving || deletingProduct}
-                      >
-                        <PencilLine size={16} />
-                        {saving ? 'Salvando...' : 'Salvar produto'}
-                      </button>
-                    </div>
                   </div>
-                </form>
-              ) : (
-                <EmptyPanel
-                  icon={<Package size={40} />}
-                  title="Nenhum produto selecionado"
-                  description="Escolha um item no topo para editar nome, grupo e links."
-                />
-              )}
+                </div>
+
+                {selectedProductData ? (
+                  <form className="stack-form" onSubmit={handleSubmit}>
+                    <label className="field">
+                      <span className="field-label">Nome</span>
+                      <input
+                        type="text"
+                        value={productEdit.name}
+                        onChange={(event) => onFieldChange('name', event.target.value)}
+                        autoFocus
+                      />
+                    </label>
+
+                    <label className="field">
+                      <span className="field-label">Grupo</span>
+                      <input
+                        type="text"
+                        value={productEdit.group_name}
+                        onChange={(event) => onFieldChange('group_name', event.target.value)}
+                        placeholder="Sem grupo"
+                      />
+                    </label>
+
+                    <div className="modal-footer modal-footer--split">
+                      <button
+                        type="button"
+                        className="secondary-button button-delete product-edit-delete"
+                        disabled={deletingProduct || saving}
+                        onClick={() => setConfirmOpen(true)}
+                      >
+                        <Trash2 size={16} />
+                        {deletingProduct ? 'Excluindo...' : 'Excluir'}
+                      </button>
+
+                      <div className="modal-footer-actions">
+                        <button type="button" className="secondary-button" onClick={() => onOpenChange(false)}>
+                          Cancelar
+                        </button>
+
+                        <button
+                          type="submit"
+                          className="secondary-button product-edit-save"
+                          disabled={saving || deletingProduct}
+                        >
+                          <PencilLine size={16} />
+                          {saving ? 'Salvando...' : 'Salvar produto'}
+                        </button>
+                      </div>
+                    </div>
+                  </form>
+                ) : (
+                  <EmptyPanel
+                    icon={<Package size={40} />}
+                    title="Nenhum produto selecionado"
+                    description="Escolha um item no topo para editar nome, grupo e links."
+                  />
+                )}
+              </div>
             </div>
           </div>
         </ModalPortal>

@@ -1,13 +1,13 @@
 :root {
   color-scheme: light;
-  --font-sans: "Avenir Next", "Segoe UI", sans-serif;
+  --font-sans: sans-serif;
 
   /* bg quente/neutro — sem o azul frio */
   --bg: #F8F6F1;
   --bg-accent:
-    radial-gradient(circle at top left,  rgba(196, 126, 26, 0.09),  transparent 32%),
-    radial-gradient(circle at top right, rgba(74,  111, 165, 0.09), transparent 28%),
-    linear-gradient(180deg, #FFFCF8 0%, #EDE9E1 100%);
+    radial-gradient(circle at top left,    rgba(26, 100, 196, 0.09),  transparent 32%),
+    radial-gradient(circle at bottom right, rgba(240, 243, 247, 0.09), transparent 28%),
+    linear-gradient(135deg, #f8fbff 0%, #f8f7f4 100%);
 
   --surface:        rgba(255, 255, 255, 0.90);
   --surface-strong: #FFFFFF;
@@ -29,6 +29,10 @@
   --warning: #C47E1A;
 
   --shadow: 0 18px 45px rgba(30, 20, 10, 0.07);
+  --scrollbar-track: color-mix(in srgb, var(--surface-muted) 78%, transparent);
+  --scrollbar-thumb: color-mix(in srgb, var(--primary) 30%, var(--surface-strong));
+  --scrollbar-thumb-hover: color-mix(in srgb, var(--primary) 46%, var(--surface-strong));
+  --scrollbar-thumb-active: color-mix(in srgb, var(--primary) 58%, var(--surface-strong));
 }
 
 :root[data-theme="dark"] {
@@ -37,9 +41,9 @@
   /* slate-azulado médio — longe do preto abismo */
   --bg: #1C2030;
   --bg-accent:
-    radial-gradient(circle at top left,  rgba(85, 132, 200, 0.13), transparent 32%),
-    radial-gradient(circle at top right, rgba(245, 184, 76, 0.10), transparent 28%),
-    linear-gradient(180deg, #222840 0%, #141925 100%);
+    radial-gradient(circle at top left,    rgba(85, 132, 200, 0.13), transparent 32%),
+    radial-gradient(circle at bottom right, rgba(58, 64, 148, 0.1),  transparent 28%),
+    linear-gradient(135deg, #222840 0%, #141925 100%);
 
   --surface:        rgba(37, 44, 64, 0.88);
   --surface-strong: #252C40;
@@ -59,7 +63,11 @@
   --danger:  #EF7083;
   --warning: #F5B84C;
 
-  --shadow: 0 18px 45px rgba(5, 8, 20, 0.40);
+  --shadow: 0 9px 25px rgba(5, 8, 20, 0.10);
+  --scrollbar-track: color-mix(in srgb, var(--surface-muted) 72%, transparent);
+  --scrollbar-thumb: color-mix(in srgb, var(--primary) 34%, var(--surface-strong));
+  --scrollbar-thumb-hover: color-mix(in srgb, var(--primary) 48%, var(--surface-strong));
+  --scrollbar-thumb-active: color-mix(in srgb, var(--primary) 62%, var(--surface-strong));
 }
 
 * {
@@ -67,6 +75,10 @@
 }
 html, body, #root {
   min-height: 100%;
+}
+
+html {
+  scrollbar-gutter: stable;
 }
 
 body {

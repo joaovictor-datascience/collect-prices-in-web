@@ -1,106 +1,82 @@
+import atexit
 import os
 
 import psycopg2
+from psycopg2 import pool as _pg_pool
 from dotenv import load_dotenv
+from shared.schema import ensure_all_schema
 
 load_dotenv()
 
+_db_pool = None
+
+
+def _get_pool():
+    """Lazy-initialize the connection pool on first use."""
+    global _db_pool
+    if _db_pool is None:
+        _db_pool = _pg_pool.ThreadedConnectionPool(
+            minconn=1,
+            maxconn=5,
+            dsn=os.getenv("DATABASE_URL"),
+        )
+        atexit.register(_db_pool.closeall)
+    return _db_pool
+
+
+class PooledConnection:
+    """Context manager that borrows a connection from the pool and returns it on exit."""
+
+    def __init__(self):
+        self.conn = _get_pool().getconn()
+
+    def __enter__(self):
+        return self.conn
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        if exc_type:
+            self.conn.rollback()
+        else:
+            self.conn.commit()
+        _get_pool().putconn(self.conn)
+        return False
+
 
 def get_connection():
-    return psycopg2.connect(os.getenv("DATABASE_URL"))
+    return PooledConnection()
 
 
 def create_tables():
-    # Keep schema creation and lightweight migration together so the scraper can
-    # bootstrap a fresh database and upgrade older product rows in one pass.
-    sql = """
-    CREATE TABLE IF NOT EXISTS products (
-        id          SERIAL PRIMARY KEY,
-        name        TEXT NOT NULL,
-        group_name  TEXT,
-        active      BOOLEAN DEFAULT TRUE,
-        created_at  TIMESTAMPTZ DEFAULT NOW(),
-        updated_at  TIMESTAMPTZ DEFAULT NOW()
-    );
-
-    ALTER TABLE products
-        ADD COLUMN IF NOT EXISTS name TEXT;
-
-    ALTER TABLE products
-        ADD COLUMN IF NOT EXISTS group_name TEXT;
-
-    UPDATE products
-       SET name = group_name
-     WHERE name IS NULL
-       AND group_name IS NOT NULL;
-
-    ALTER TABLE products
-        ALTER COLUMN name SET NOT NULL;
-
-    CREATE TABLE IF NOT EXISTS product_urls (
-        id          SERIAL PRIMARY KEY,
-        product_id  INT REFERENCES products(id) ON DELETE CASCADE,
-        url         TEXT UNIQUE NOT NULL,
-        active      BOOLEAN DEFAULT TRUE,
-        created_at  TIMESTAMPTZ DEFAULT NOW()
-    );
-
-    CREATE TABLE IF NOT EXISTS stores (
-        id    SERIAL PRIMARY KEY,
-        name  TEXT UNIQUE NOT NULL
-    );
-
-    CREATE TABLE IF NOT EXISTS price_history (
-        id          SERIAL PRIMARY KEY,
-        product_id  INT REFERENCES products(id) ON DELETE SET NULL,
-        store_id    INT REFERENCES stores(id) ON DELETE SET NULL,
-        price       NUMERIC(12, 2) NOT NULL,
-        url         TEXT,
-        scraped_at  TIMESTAMPTZ DEFAULT NOW()
-    );
-
-    CREATE INDEX IF NOT EXISTS idx_price_history_lookup
-        ON price_history(product_id, scraped_at DESC);
-
-    CREATE UNIQUE INDEX IF NOT EXISTS idx_products_name_unique
-        ON products(name);
-
-    CREATE INDEX IF NOT EXISTS idx_products_group_name
-        ON products(group_name)
-        WHERE group_name IS NOT NULL;
-
-    CREATE INDEX IF NOT EXISTS idx_product_urls_active
-        ON product_urls(product_id) WHERE active = TRUE;
-
-    DO $$
-    BEGIN
-        IF EXISTS (
-            SELECT 1
-              FROM information_schema.table_constraints
-             WHERE table_name = 'products'
-               AND constraint_name = 'products_group_name_key'
-        ) THEN
-            ALTER TABLE products DROP CONSTRAINT products_group_name_key;
-        END IF;
-    END $$;
-    """
-    with get_connection() as conn:
-        with conn.cursor() as cur:
-            cur.execute(sql)
+    ensure_all_schema(get_connection)
 
 
-def get_products_to_scrape() -> dict:
+def get_products_to_scrape(product_ids: list[int] | None = None) -> dict:
     """Return active products and URLs as {"name": ["url1", "url2"], ...}."""
+    if product_ids is not None and not product_ids:
+        return {}
+
     with get_connection() as conn:
         with conn.cursor() as cur:
-            cur.execute("""
+            query = """
                 SELECT p.name, pu.url
                 FROM product_urls pu
                 JOIN products p ON p.id = pu.product_id
                 WHERE pu.active = TRUE
                   AND p.active = TRUE
+            """
+            params = []
+
+            if product_ids is not None:
+                query += """
+                  AND p.id = ANY(%s)
+                """
+                params.append(product_ids)
+
+            query += """
                 ORDER BY p.name
-            """)
+            """
+
+            cur.execute(query, tuple(params))
             rows = cur.fetchall()
 
     products = {}
@@ -137,41 +113,19 @@ def get_or_create_store(conn, store_name: str) -> int:
         return cur.fetchone()[0]
 
 
+def _save_result_with_connection(conn, result: dict):
+    product_id = get_or_create_product(conn, result["product_name"])
+    store_id = get_or_create_store(conn, result["store"])
+    with conn.cursor() as cur:
+        cur.execute(
+            """
+            INSERT INTO price_history (product_id, store_id, price, url, scraped_at)
+            VALUES (%s, %s, %s, %s, %s)
+            """,
+            (product_id, store_id, result["price"], result["url"], result["scraped_at"])
+        )
+
+
 def save_result(result: dict):
     with get_connection() as conn:
-        # Resolve foreign keys before inserting the historical price snapshot.
-        product_id = get_or_create_product(conn, result["product_name"])
-        store_id = get_or_create_store(conn, result["store"])
-
-        with conn.cursor() as cur:
-            cur.execute(
-                """
-                INSERT INTO price_history (product_id, store_id, price, url, scraped_at)
-                VALUES (%s, %s, %s, %s, %s)
-                """,
-                (
-                    product_id,
-                    store_id,
-                    result["price"],
-                    result["url"],
-                    result["scraped_at"],
-                )
-            )
-
-
-def save_results(results: list[dict]):
-    """Save all results in a single connection instead of one connection per result."""
-    if not results:
-        return
-    with get_connection() as conn:
-        for result in results:
-            product_id = get_or_create_product(conn, result["product_name"])
-            store_id = get_or_create_store(conn, result["store"])
-            with conn.cursor() as cur:
-                cur.execute(
-                    """
-                    INSERT INTO price_history (product_id, store_id, price, url, scraped_at)
-                    VALUES (%s, %s, %s, %s, %s)
-                    """,
-                    (product_id, store_id, result["price"], result["url"], result["scraped_at"])
-                )
+        _save_result_with_connection(conn, result)
