@@ -1,0 +1,6 @@
+frontend/
+backend/
+tests/
+*.md
+.git/
+frontend/node_modules/

@@ -78,27 +78,19 @@ def _create_browser():
     options.add_argument("--window-size=1440,1200")
     options.add_argument("--disable-dev-shm-usage")
     options.add_argument("--no-sandbox")
+    options.page_load_strategy = os.getenv("SCRAPER_PAGE_LOAD_STRATEGY", "eager")
 
-    headless = os.getenv("SCRAPER_HEADLESS", "1").strip().lower() not in {
-        "0",
-        "false",
-        "no",
-        "off",
-        "",
-    }
+    if not (os.getenv("DISPLAY") or os.getenv("WAYLAND_DISPLAY")):
+        raise RuntimeError(
+            "Scraper requires a graphical display. "
+            "Expose DISPLAY/WAYLAND_DISPLAY to the container or start Xvfb before launch."
+        )
 
-    if headless:
-        options.add_argument("--headless=new")
-    else:
-        if not (os.getenv("DISPLAY") or os.getenv("WAYLAND_DISPLAY")):
-            raise RuntimeError(
-                "SCRAPER_HEADLESS=0 requires a graphical display. "
-                "Expose DISPLAY/WAYLAND_DISPLAY to the container or use headless mode."
-            )
-        options.add_argument("--start-maximized")
+    options.add_argument("--start-maximized")
 
     chrome_major_version = int(os.getenv("SCRAPER_CHROME_MAJOR_VERSION", "146"))
     browser = uc.Chrome(options=options, version_main=chrome_major_version)
+    browser.set_page_load_timeout(int(os.getenv("SCRAPER_PAGE_LOAD_TIMEOUT_SECONDS", "30")))
     browser.implicitly_wait(int(os.getenv("SCRAPER_IMPLICIT_WAIT_SECONDS", "4")))
     time.sleep(
         random.uniform(

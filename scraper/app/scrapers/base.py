@@ -1,7 +1,11 @@
 from abc import ABC, abstractmethod
 from datetime import datetime, timezone
 
-from selenium.common.exceptions import JavascriptException, NoSuchElementException, StaleElementReferenceException
+from selenium.common.exceptions import (
+    JavascriptException,
+    NoSuchElementException,
+    StaleElementReferenceException,
+)
 from selenium.webdriver.support.ui import WebDriverWait
 
 
@@ -30,7 +34,7 @@ class BaseScraper(ABC):
             "scraped_at": datetime.now(timezone.utc).isoformat(),
         }
 
-    def wait_for_document_ready(self, timeout: int = 60):
+    def wait_for_document_ready(self, timeout: int = 20):
         """Wait until the page signals the DOM is fully loaded."""
 
         def _is_ready(driver):
@@ -41,7 +45,7 @@ class BaseScraper(ABC):
 
         return WebDriverWait(self.browser, timeout, poll_frequency=0.25).until(_is_ready)
 
-    def wait_for_non_empty_text(self, by, selector: str, *, timeout: int = 60) -> str:
+    def wait_for_non_empty_text(self, by, selector: str, *, timeout: int = 20) -> str:
         """
         Wait until an element exists and exposes non-empty text.
 

@@ -1,6 +1,6 @@
 from selenium.webdriver.common.by import By
-
 from .base import BaseScraper
+
 
 
 class MercadoLivreScraper(BaseScraper):
