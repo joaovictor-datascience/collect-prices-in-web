@@ -40,7 +40,7 @@ export function useProductAnalytics({ selectedProductData, timeRange, storeFilte
 
   const selectedProductLabel = selectedProductData
     ? selectedProductData.group_name
-      ? `${selectedProductData.group_name} / ${selectedProductData.name}`
+      ? `${selectedProductData.name} / ${selectedProductData.group_name}`
       : selectedProductData.name
     : 'Selecione um produto';
 
