@@ -1,8 +1,11 @@
+import os
+
 from flask import Blueprint, jsonify, request
 
 from api.db import get_db_connection
 
 analytics_bp = Blueprint('analytics', __name__)
+ANALYTICS_TIMEZONE = os.getenv("ANALYTICS_TIMEZONE", os.getenv("TZ", "America/Sao_Paulo"))
 
 
 def _empty_analytics_payload(store_stats=None):
@@ -32,46 +35,115 @@ def _parse_date_filter(days):
 
 
 def _fetch_price_history(cur, product_id, date_filter, filter_params):
-    """Fetch chronological price history for a product."""
+    """Fetch deduplicated price history for a product.
+
+    For each (store, day) group:
+    - If all readings have the same price, keep only the last one.
+    - If prices differ, keep only the readings with distinct prices
+      (last occurrence of each price within the day).
+    """
     cur.execute(
         f"""
-        SELECT ph.id, ph.price, ph.url, ph.scraped_at, s.name AS store_name
-          FROM price_history ph
-          JOIN stores s ON ph.store_id = s.id
-         WHERE ph.product_id = %s {date_filter}
-         ORDER BY ph.scraped_at ASC
+        WITH filtered_history AS (
+            SELECT ph.id, ph.price, ph.url, ph.scraped_at, ph.store_id, s.name AS store_name,
+                   timezone(%s, ph.scraped_at)::date AS local_day
+              FROM price_history ph
+              JOIN stores s ON ph.store_id = s.id
+             WHERE ph.product_id = %s {date_filter}
+        ),
+        day_groups AS (
+            SELECT fh.store_id,
+                   fh.local_day AS day,
+                   COUNT(DISTINCT fh.price) AS distinct_prices
+              FROM filtered_history fh
+             GROUP BY fh.store_id, fh.local_day
+        ),
+        daily AS (
+            SELECT fh.id, fh.price, fh.url, fh.scraped_at, fh.store_name,
+                   dg.distinct_prices,
+                   ROW_NUMBER() OVER (
+                       PARTITION BY fh.store_id, fh.local_day, fh.price
+                       ORDER BY fh.scraped_at DESC
+                   ) AS rn_price,
+                   ROW_NUMBER() OVER (
+                       PARTITION BY fh.store_id, fh.local_day
+                       ORDER BY fh.scraped_at DESC
+                   ) AS rn_day
+              FROM filtered_history fh
+              JOIN day_groups dg
+                ON dg.store_id = fh.store_id
+               AND dg.day = fh.local_day
+        )
+        SELECT id, price, url, scraped_at, store_name
+          FROM daily
+         WHERE (distinct_prices = 1 AND rn_day = 1)
+            OR (distinct_prices > 1  AND rn_price = 1)
+         ORDER BY scraped_at ASC
         """,
-        tuple([product_id] + filter_params),
+        tuple([ANALYTICS_TIMEZONE, product_id] + filter_params),
     )
     return cur.fetchall()
 
 
 def _fetch_store_stats(cur, product_id, date_filter, filter_params):
-    """Compute per-store stats using SQL aggregation instead of Python loops."""
+    """Compute per-store stats over deduplicated readings."""
     base_params = [product_id] + filter_params
     cur.execute(
         f"""
-        WITH store_agg AS (
-            SELECT s.name AS store_name,
-                   MIN(ph.price) AS min_price,
-                   MAX(ph.price) AS max_price,
-                   AVG(ph.price) AS avg_price,
-                   COUNT(*)      AS samples
+        WITH filtered_history AS (
+            SELECT ph.id, ph.price, ph.url, ph.scraped_at, ph.store_id, s.name AS store_name,
+                   timezone(%s, ph.scraped_at)::date AS local_day
               FROM price_history ph
               JOIN stores s ON ph.store_id = s.id
              WHERE ph.product_id = %s {date_filter}
-             GROUP BY s.name
+        ),
+        day_groups AS (
+            SELECT fh.store_id,
+                   fh.local_day AS day,
+                   COUNT(DISTINCT fh.price) AS distinct_prices
+              FROM filtered_history fh
+             GROUP BY fh.store_id, fh.local_day
+        ),
+        daily AS (
+            SELECT fh.id, fh.price, fh.url, fh.scraped_at,
+                   fh.store_id, fh.store_name,
+                   dg.distinct_prices,
+                   ROW_NUMBER() OVER (
+                       PARTITION BY fh.store_id, fh.local_day, fh.price
+                       ORDER BY fh.scraped_at DESC
+                   ) AS rn_price,
+                   ROW_NUMBER() OVER (
+                       PARTITION BY fh.store_id, fh.local_day
+                       ORDER BY fh.scraped_at DESC
+                   ) AS rn_day
+              FROM filtered_history fh
+              JOIN day_groups dg
+                ON dg.store_id = fh.store_id
+               AND dg.day = fh.local_day
+        ),
+        deduped AS (
+            SELECT id, price, url, scraped_at, store_id, store_name
+              FROM daily
+             WHERE (distinct_prices = 1 AND rn_day = 1)
+                OR (distinct_prices > 1  AND rn_price = 1)
+        ),
+        store_agg AS (
+            SELECT store_name,
+                   MIN(price) AS min_price,
+                   MAX(price) AS max_price,
+                   AVG(price) AS avg_price,
+                   COUNT(*)   AS samples
+              FROM deduped
+             GROUP BY store_name
         ),
         latest AS (
-            SELECT DISTINCT ON (s.name)
-                   s.name        AS store_name,
-                   ph.price      AS latest_price,
-                   ph.url        AS latest_url,
-                   ph.scraped_at AS latest_scraped_at
-              FROM price_history ph
-              JOIN stores s ON ph.store_id = s.id
-             WHERE ph.product_id = %s {date_filter}
-             ORDER BY s.name, ph.scraped_at DESC
+            SELECT DISTINCT ON (store_name)
+                   store_name,
+                   price      AS latest_price,
+                   url        AS latest_url,
+                   scraped_at AS latest_scraped_at
+              FROM deduped
+             ORDER BY store_name, scraped_at DESC
         )
         SELECT sa.store_name, sa.min_price, sa.max_price, sa.avg_price, sa.samples,
                l.latest_price, l.latest_url, l.latest_scraped_at
@@ -79,7 +151,7 @@ def _fetch_store_stats(cur, product_id, date_filter, filter_params):
           JOIN latest l ON sa.store_name = l.store_name
          ORDER BY sa.store_name
         """,
-        tuple(base_params + base_params),
+        tuple([ANALYTICS_TIMEZONE] + base_params),
     )
     return [
         {
