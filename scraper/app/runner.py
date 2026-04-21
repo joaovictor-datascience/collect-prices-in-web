@@ -80,15 +80,9 @@ def _create_browser():
     options.add_argument("--no-sandbox")
     options.page_load_strategy = os.getenv("SCRAPER_PAGE_LOAD_STRATEGY", "eager")
 
-    if not (os.getenv("DISPLAY") or os.getenv("WAYLAND_DISPLAY")):
-        raise RuntimeError(
-            "Scraper requires a graphical display. "
-            "Expose DISPLAY/WAYLAND_DISPLAY to the container or start Xvfb before launch."
-        )
-
     options.add_argument("--start-maximized")
 
-    browser = uc.Chrome(options=options)
+    browser = uc.Chrome(options=options, version_main=147)
     browser.set_page_load_timeout(int(os.getenv("SCRAPER_PAGE_LOAD_TIMEOUT_SECONDS", "30")))
     browser.implicitly_wait(int(os.getenv("SCRAPER_IMPLICIT_WAIT_SECONDS", "4")))
     time.sleep(
