@@ -63,7 +63,10 @@ export function ProductLinksModal({
       {open && (
         <ModalPortal>
           <div className="modal-overlay" onClick={() => onOpenChange(false)}>
-            <div className="modal-box modal-box--wide" onClick={(event) => event.stopPropagation()}>
+            <div
+              className="modal-box modal-box--wide product-links-modal"
+              onClick={(event) => event.stopPropagation()}
+            >
               <div className="modal-scroll">
                 <div className="modal-header">
                   <div>

@@ -124,9 +124,16 @@ body::-webkit-scrollbar-thumb:active,
 
 .field input:focus,
 .field textarea:focus,
-.field-input:focus-within {
+.field-input:focus-within,
+.product-links-modal .field textarea:focus,
+.product-links-modal .field-input:focus-within {
   border-color: var(--border-strong);
   box-shadow: 0 0 0 4px rgba(47, 111, 237, 0.1);
+}
+
+.product-links-modal .field input:focus{
+  border-color: var(--border);
+  box-shadow: none;
 }
 
 .field-input {
