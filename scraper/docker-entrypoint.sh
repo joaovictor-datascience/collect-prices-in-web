@@ -21,3 +21,4 @@ if [ "${SCRAPER_START_XVFB:-1}" = "1" ]; then
 fi
 
 exec "$@"
+
